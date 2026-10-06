@@ -35,3 +35,4 @@ tools/zenodo_upload.sh	local-only (written 2026-10-06)	new
 tools/zenodo_README.md	new	new	
 LICENSE	new	new	
 tools/hoffman_versions.sh	local-only (written 2026-10-06)	new	
+tools/sra_inventory.sh	local-only (written 2026-10-06)	new	
