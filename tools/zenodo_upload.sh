@@ -6,12 +6,14 @@
 # reserves its DOI. It never publishes: the record stays private until someone
 # presses Publish in the web UI, after the preprint is posted.
 #
-#   export ZENODO_TOKEN=...     # zenodo.org -> Applications -> Personal access
+#   export ZENODO_TOKEN=...     # or keep it in ~/.zenodo_token, chmod 600;
+#                               # zenodo.org -> Applications -> Personal access
 #                               # tokens; scopes deposit:write and deposit:actions
 #   bash tools/zenodo_upload.sh                  # new draft
 #   DEPOSITION_ID=1234567 bash tools/zenodo_upload.sh   # resume into that draft
 set -euo pipefail
-: "${ZENODO_TOKEN:?export ZENODO_TOKEN first}"
+[ -z "${ZENODO_TOKEN:-}" ] && [ -r ~/.zenodo_token ] && ZENODO_TOKEN=$(<~/.zenodo_token)
+: "${ZENODO_TOKEN:?export ZENODO_TOKEN or put it in ~/.zenodo_token (chmod 600)}"
 API=${ZENODO_API:-https://zenodo.org/api}   # sandbox: https://sandbox.zenodo.org/api
 STAGE=${STAGE:-$SCRATCH/xqtl_zenodo}
 README=${README:-$(dirname "$0")/zenodo_README.md}

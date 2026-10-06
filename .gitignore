@@ -12,3 +12,4 @@ work/
 .DS_Store
 .Rhistory
 xqtl_v7_collect/
+.zenodo_token
