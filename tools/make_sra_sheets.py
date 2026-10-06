@@ -45,6 +45,7 @@ DESIGN = ('Genomic DNA from a pool of haploid segregants (or a haploid parent '
           '2 x 150 bp paired-end sequencing.')
 
 TEMPLATE = os.path.join(OUT, 'template_Microbe.1.0.xlsx')
+SRA_TEMPLATE = os.path.join(OUT, 'template_SRA_metadata.xlsx')
 # custom attributes (BioSample accepts extra columns) appended after the template's
 CUSTOM_POOLS = ['treatment', 'growth_protocol', 'cross', 'wild_parent', 'common_parent', 'plate_map_wild_parent',
                 'parent_assignment', 'plate', 'well']
@@ -80,6 +81,21 @@ def write_biosample(stem, rows, custom):
     for i, r in enumerate(rows, hdr + 1):
         for j, c in enumerate(cols, 1):
             ws.cell(i, j, r.get(c, ''))
+    wb.save(os.path.join(OUT, stem + '.xlsx'))
+    print(f'{len(rows):4d} rows  sra/{stem}.xlsx')
+
+
+def write_sra_xlsx(stem, rows):
+    """The NCBI SRA_metadata template, sheet SRA_data, filled from row 2."""
+    import openpyxl
+    wb = openpyxl.load_workbook(SRA_TEMPLATE); ws = wb['SRA_data']
+    hdr = [c.value for c in ws[1]]
+    missing = [c for c in SRA_COLS if c not in hdr]
+    if missing:
+        sys.exit(f'SRA template lacks columns {missing}')
+    for i, r in enumerate(rows, 2):
+        for c in SRA_COLS:
+            ws.cell(i, hdr.index(c) + 1, r[c])
     wb.save(os.path.join(OUT, stem + '.xlsx'))
     print(f'{len(rows):4d} rows  sra/{stem}.xlsx')
 
@@ -220,6 +236,7 @@ def main():
     ## the combined submission
     write_biosample('biosample_all', all_bs + bs, CUSTOM_POOLS + [c for c in CUSTOM_PARENTS if c not in CUSTOM_POOLS])
     write(os.path.join(OUT, 'sra_metadata_all.tsv'), SRA_COLS, all_sra + sra)
+    write_sra_xlsx('sra_metadata_all', all_sra + sra)
     fn = [r[c] for r in all_sra + sra for c in ('filename', 'filename2', 'filename3', 'filename4') if r[c]]
     if len(fn) != len(set(fn)):
         problems.append('duplicate filenames in the combined SRA sheet')
