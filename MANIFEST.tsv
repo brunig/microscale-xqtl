@@ -1,0 +1,36 @@
+path	status	source	md5
+upstream/run_pipeline.sh	verified: matches Hoffman md5	hoffmanDrop/notAF/old/files/run_pipeline.sh	7f8a7a5b3c6ae6be3aeedd3d7878497c
+upstream/main.nf	verified: fetched from Hoffman, md5 matches	hoffman:files/main.nf	a45a29bd92ce0d9ab0229d9ee0634767
+upstream/nextflow.config	verified: fetched from Hoffman, md5 matches	hoffman:files/nextflow.config	c3f41a1c221ec9ec8f4bfebee29f9933
+upstream/parents_A1/01_hoffman_setup.sh	local-only (not in the Hoffman inventory)	hoffmanDrop/A1ref/01_hoffman_setup.sh	df3cbe064d58967ece99f2cf81ac2bd8
+upstream/parents_A1/02_align.sh	local-only (not in the Hoffman inventory)	hoffmanDrop/A1ref/02_align.sh	913524ddb12519d2ed81ba6947bef2cb
+qc/qc_bam_generate.sh	verified: fetched from Hoffman, md5 matches	hoffman:files/qc_bam_generate.sh	7bfdba85f1c5ee6aab95203621a3f18a
+qc/qc_pipeline.R	verified: fetched from Hoffman, md5 matches	hoffman:files/qc_pipeline.R	bcdc3bc75e68e414f4b34cc6fc983ac7
+parents/hamming_export.py	verified: fetched from Hoffman, md5 matches	hoffman:files/hamming_export.py	e104acd5d1656ca07724825580cdf752
+parents/hamming_integrate.R	verified: fetched from Hoffman, md5 matches	hoffman:files/hamming_integrate.R	3d710ea8713db88b2b07c885bdaf594d
+parents/scan_parent_identity.R	verified: matches Hoffman md5	hoffmanDrop/notAF/old/files/scan_parent_identity.R	5be7dd839cfd6417302f9626d12b9665
+parents/reassign_parents.R	verified: matches Hoffman md5	hoffmanDrop/notAF/old/files/reassign_parents.R	08330ea9535bc770e3b4381ed4791f82
+parents/recheck_held_wells.R	verified: matches Hoffman md5	hoffmanDrop/notAF/old/files/recheck_held_wells.R	b88b7625c2321e5879a2ff93f7276aeb
+parents/round3_apply.R	verified: fetched from Hoffman, md5 matches	hoffman:files/round3_apply.R	5c4d880969c731b05b327aad127052b3
+parents/verify_parents.R	verified: fetched from Hoffman, md5 matches	hoffman:files/verify_parents.R	f76996bedfafb8d5df567c2b635ccdb2
+parents/flatkey_A1.csv	verified: fetched from Hoffman, md5 matches	hoffman:files/flatkey_A1.csv	0606125ef953bcd2cf7cd64a083a5339
+pipeline/xQTL_analysis7.R	verified: fetched from Hoffman, md5 matches	hoffman:runs/v7/scripts/xQTL_analysis7.R	44ffae4ae4f3e158e28ef6c017751368
+derived/make_numbers.py	local-only (not in the Hoffman inventory)	draft/derived/make_numbers.py	f9ab095235514500f0b87346dbe27c7d
+derived/recorded_from_R.tsv	local-only (not in the Hoffman inventory)	draft/derived/recorded_from_R.tsv	981d3e5646cf7a99d3dd192ba0c21867
+derived/make_workbook.py	local-only (not in the Hoffman inventory)	draft/derived/make_workbook.py	212f90de2a0aa6d1d9e364ccb8291b45
+derived/make_table_legends.py	local-only (not in the Hoffman inventory)	draft/derived/make_table_legends.py	d879d5ae9cf4c6400967276bca830905
+derived/estimate_pool_size.R	local-only (not in the Hoffman inventory)	draft/derived/estimate_pool_size.R	4abdcb770e9e5998dc583974c6f95350
+derived/make_go_candidates.R	local-only (not in the Hoffman inventory)	draft/derived/make_go_candidates.R	5ee610ae8f5d9709e2af65759e13eef2
+figures/make_figures.R	local-only (not in the Hoffman inventory)	draft/figures/make_figures.R	1dddf0705bdfd2d2bedc8289fdf130f7
+figures/make_fig1.py	local-only (not in the Hoffman inventory)	draft/figures/make_fig1.py	eb8fcfb0679df6abf06aad2ee15ba4e8
+figures/make_figure_pdf.py	local-only (not in the Hoffman inventory)	draft/figures/make_figure_pdf.py	76f87ec5aa49e39a71b441b167643fea
+browser/scripts/export.R	local-only (not in the Hoffman inventory)	browser/scripts/export.R	a55ca60b866385d930fabd734c545e04
+browser/scripts/export_variants.R	local-only (not in the Hoffman inventory)	browser/scripts/export_variants.R	b9d8609254da9b7e322ddf4a90e84ee0
+browser/README.md	local-only (not in the Hoffman inventory)	browser/README.md	a05886b26437c28da3bd58749e73685f
+tools/hoffman_collect.sh	local-only (written 2026-10-06)	new	
+README.md	new	new	
+RATIONALE.md	new	new	
+tools/zenodo_package.sh	local-only (written 2026-10-06)	new	
+tools/zenodo_upload.sh	local-only (written 2026-10-06)	new	
+tools/zenodo_README.md	new	new	
+LICENSE	new	new	

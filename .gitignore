@@ -1,0 +1,14 @@
+# data never goes in git: it is deposited (SRA for reads, Zenodo for everything else)
+*.qs
+*.bam
+*.bai
+*.fastq*
+*.fq.gz
+*.vcf.gz
+cache/
+runs/
+work/
+.ipynb_checkpoints/
+.DS_Store
+.Rhistory
+xqtl_v7_collect/

@@ -1,0 +1,54 @@
+quantity	value	value_mmd5	source
+run settings	min_med_depth = 2, skew_cut = 0.05, keep_chr7 = TRUE, LOD threshold 5, diverged_frac 0.01, max_excess 0.12, AFD sample 10,000	min_med_depth = 5; every other setting identical	v6b/contrasts/run_manifest.qs; xQTL_analysis6.R:688-689
+interval rule	the LOD interval is the region where LOD falls by 10% of the peak's own LOD, floored at 20 kb and capped at 200 kb (not a fixed 3-LOD drop)		v6b/contrasts/run_manifest.qs
+pools analysed (`main`)	181 of 384 wells; 84 flagged, 119 no_data	148 of 384; 117 flagged, 119 no_data	v6b/qc/results_key.csv; run_manifest.qs
+fitness peaks called	3,989 total, 1,829 in `main` pools	1,638 in `main`	v6b/contrasts/fit_peaks.csv; run_manifest.qs
+fitness peaks removed by MASK_REPORT (MAT + HO, shoulder 0.5)	357 (182 MAT, 175 HO)		v6b/contrasts/fit_peaks.csv
+fitness peaks retained	1,472, in 179 pools from 35 crosses	1,340	v6b/contrasts/fit_peaks.csv
+retained fitness peaks by condition	505 glucose, 381 acetic acid, 216 caffeine, 370 NaCl	519, 386, 133, 302	v6b/landscape/our_loci_summary.csv
+peaks per pool	median 6 (IQR 3-10, range 1 to 53)		v6b/contrasts/fit_peaks.csv
+peak interval width	median 29.3 kb (IQR 14.9-58.8)		v6b/contrasts/fit_peaks.csv
+peaks at an interval bound	166 of 1,472 (11.3%) sit at the 20 kb floor; only 3 reach the 200 kb cap (LOD 5.2-11.7)		v6b/contrasts/fit_peaks.csv
+allele-frequency shift at peak	median 0.145 (IQR 0.095-0.262)		v6b/contrasts/fit_peaks.csv
+peaks where the BBQ allele is favoured	74.3% (1,093 of 1,472)		v6b/contrasts/fit_peaks.csv
+peak.LOD = Inf	0 of 3,989 -- FIXED in v6b. The LOD scale is still inflated (the SE is a flat per-pool scalar), so quote beta, not LOD		v6b/contrasts/fit_peaks.csv
+stress peaks	1,418 called, 363 in `main`, 49 masked, 314 retained in 75 pools from 24 crosses	226 in `main`	v6b/contrasts/stress_peaks.csv; run_manifest.qs
+retained stress peaks by condition	76 acetic acid, 139 caffeine, 99 NaCl (glucose is the reference arm of this contrast)		v6b/contrasts/stress_peaks.csv
+grouped loci (Treusch 2015 rule)	74 glucose, 77 acetic acid, 88 caffeine, 89 NaCl. These sum to 328, but conditions are grouped independently so a shared locus is counted more than once; the genome-wide union of all four is 49	309 summed	v6b/landscape/our_loci_summary.csv
+grouped loci, pools / crosses / peaks / median consensus width	glucose 80 / 35 / 505 / 59.6 kb; acetic acid 50 / 25 / 381 / 48.0 kb; caffeine 16 / 13 / 216 / 31.5 kb; NaCl 33 / 17 / 370 / 35.6 kb		v6b/landscape/our_loci_summary.csv
+crosses per locus	mean 4.09 glucose, 3.35 acetic acid, 2.20 caffeine, 2.78 NaCl (median 2, 3, 1.5, 2)		v6b/contrasts/fit_peaks.csv
+loci ranked for candidate genes (>= 2 crosses, genes present)	fitness 221 (66 glucose, 58 acetic acid, 38 caffeine, 59 NaCl); stress 48 (9, 26, 13)		v6b/candidates/
+consensus region width, ranked loci	fitness median 38.1 kb (IQR 12.7-68.4); stress median 23.4 kb (12.3-55.9)		v6b/candidates/
+(locus, gene) pairs	fitness 5,160; stress 911		v6b/candidates/
+allele-series hits at q < 0.05	fitness 12; stress 0		v6b/candidates/
+allele-series self-check, fitness	30 instances, 11 genes, 21 loci, median 34.5 genes per locus, mean percentile 0.413 (chance 0.5), rank1 = 5, top5 = 10, p_wilcox = 0.062, p_perm = 0.051 -- a trend, NOT significant	27 instances, 10 genes, 19 loci, mean percentile 0.433, rank1 = 5, top5 = 10, p_perm = 0.116	v6b/candidates/fitness/qtl_candidates_fitness_validation.csv
+allele-series self-check, stress	NOT EVALUATED -- the block is gated at >= 10 published rows and stress has 9. Say 'not evaluated', never 'not significant'		xQTL_analysis6.R:3109
+rank-1 candidate hits	CYR1 (acetic acid, chrX 435,478; 1 of 34), OSM1 (caffeine, chrX 528,954; 1 of 34), CYR1 (glucose, chrX 452,288; 1 of 31), MSB2 (acetic acid, chrVII 513,559; 1 of 24), TOR1 (NaCl, chrX 554,085; 1 of 19)		v6b/candidates/fitness/qtl_candidates_fitness.csv
+allele-series null expectations -- STILL NOT EMITTED	reconstructed as E[rank1] = sum 1/n_i = 0.89 and E[top5] = sum min(5,n_i)/n_i = 4.44 over the 30 instances. The 0.89 in the old prose matches; the old 4.47 came from a different run. No code emits these -- amend qtl_candidates.R or state the formula in Methods	E[rank1] = 0.97, E[top5] = 4.84	(reconstruction, not an emitted value)
+Treusch 2015 grouped QTL	58 of 60 survive MASK_PUB; the two dropped are the chrVII pair (Caff.chr07.1, NaCl.chr07.2)		v6b/landscape/published_loci_used.csv
+published interval width	median 45.7 kb over all 60 (44.8 kb over the 58 tested)		v6b/landscape/published_loci_used.csv
+cross-level replication vs Treusch -- PRIMARY RESULT	observed 71 detections, null mean 51.9 (range 40-64), fold 1.37, p_perm = 0.003 (3/1001, 1,000 permutations); 1,301 peaks used, 528 masked	observed 51, null mean 41 (range 30-52), fold 1.24, p_perm = 0.045	v6b/landscape/published_crosslevel_summary.csv
+companion test, obs_any	36 loci hit vs 35.6 expected, p = 0.51 -- NOT significant. The signal is in the depth of replication, not in which loci are hit	29 vs 29.8, p = 0.64	v6b/landscape/published_crosslevel_summary.csv
+companion test, Spearman vs published cross count	rho = 0.065, p = 0.63 (label permutation 0.31); against published LOD rho = 0.066, p = 0.62 -- NOT significant	rho = 0.057, p = 0.67	v6b/landscape/published_crosslevel_summary.csv
+dose-response by published cross count -- NOT SUPPORTED	non-monotone in v6b (1.21, 0.73, 1.64 for 1, 2, 3+ published crosses). The claim in the old draft and in landscape.log's header does not hold		v6b/landscape.log:99-103
+recovery vs same-coverage null, caffeine	17 pools, 23 published QTL: >= 1 pool 13 recovered vs 12.4 (1.05-fold, p = 0.48); >= 2 pools 7 vs 4.2 (1.68, p = 0.11); >= 3 pools 6 vs 1.0 (5.99-fold, p = 0.00036)	9 pools; >= 3 pools 3 vs 0.3 (11.48-fold, p = 0.0022)	v6b/landscape/published_recovery.csv
+recovery vs same-coverage null, NaCl	34 pools, 37 published QTL: >= 1 pool 25 vs 26.9 (0.93, p = 0.81); >= 2 pools 15 vs 13.8 (1.09, p = 0.40); >= 3 pools 8 vs 5.3 (1.52, p = 0.15) -- never significant		v6b/landscape/published_recovery.csv
+per-locus condition-matched tests	5 of 60 loci enriched at q < 0.05. Two of the five are the chrVII pair that MASK_PUB withholds from the cross-level test -- this must be stated where both are quoted		v6b/landscape/published_overlap_enrichment.csv
+ENA locus, NaCl	chrIV 509,600 (chrIV, not chrV): 12 of 34 matched pools vs 1.30 expected, 9.25-fold, q = 8.6e-07 -- the cleanest condition-specific hit, and not on chrVII		v6b/landscape/published_overlap_enrichment.csv
+other condition-matched hits	caffeine chrVII 513,400 11.65-fold q = 4.1e-06; NaCl chrIII 289,800 5.40-fold q = 0.0060; NaCl chrVII 536,050 5.40-fold q = 0.0060; NaCl chrIV 1,397,800 4.63-fold q = 0.026		v6b/landscape/published_overlap_enrichment.csv
+chrV locus -- NOT SUPPORTED	all three NaCl chrV loci are null in v6b (folds 1.54, 0.77, 0.00; all q = 1.00). The old draft's 'chrV locus at 3.5-fold, q = 0.020' does not reproduce		v6b/landscape/published_overlap_enrichment.csv
+negative-control loci (Ehrenreich 2010, conditions never assayed)	4 loci at 0.00- to 0.89-fold, all q = 1.00 (MKT1 0.89, CUP1 0.18, HAP1 0.18, RAD5 0.00)		v6b/landscape/published_overlap_enrichment.csv
+chrVII locus interval	chrVII 440,000-600,000 as defined for masking; observed summits 467,277-575,262, median 514,736		v6b/landscape/masked_regions.csv; fit_peaks.csv
+chrVII, fitness contrast	171 of 1,472 retained peaks (11.6%), in 170 of 179 pools (95.0%), 34 of 35 crosses. Denominators are the retained set throughout; bbq_chr07_locus.csv quotes 9.3% and 93.9% against the pre-mask total of 1,829 peaks and 181 pools -- do not mix the two		v6b/contrasts/fit_peaks.csv
+chrVII by condition	share of that condition's retained pools: 95.0% glucose, 100% acetic acid, 81.2% caffeine, 93.9% NaCl		v6b/contrasts/fit_peaks.csv
+chrVII, BBQ allele favoured	171 of 171 peaks (100%), median shift 0.390		v6b/contrasts/fit_peaks.csv
+chrVII, stress contrast	7 of 314 retained stress peaks (2.2%), in 7 of 75 pools (9.3%), 4 crosses, BBQ favoured at none. The locus cancels when a stress pool is contrasted against its own glucose control		v6b/contrasts/stress_peaks.csv
+replicate interval sharing	median frac_shared 0.490 across 56 cross-by-condition groups, 147 wells (IQR 0.352-0.628)		v6b/qc/reproducibility_main.csv
+replicate sharing by condition	0.545 glucose (27 groups, 72 wells), 0.545 acetic acid (15, 40), 0.146 caffeine (4 groups, 8 wells), 0.403 NaCl (10, 27). Caffeine rests on 4 groups and is mechanically depressed by peak count		v6b/qc/reproducibility_main.csv
+ABBxBBQ / glucose reproducibility panel	5 wells, 21 intervals, 14 shared, frac_shared 0.667; excluding well H08 (4 peaks) it is 4 wells, 20 intervals, 14 shared, 0.700 -- dropping H08 removes one private interval and no shared one		v6b/qc/reproducibility_main.csv
+loci with no published counterpart	caffeine 72 of 88 (82%), NaCl 56 of 89 (63%). Glucose and acetic acid have no published comparator at all, which is not the same thing		v6b/landscape/our_loci_summary.csv
+overlap with Treusch grouped loci	caffeine 16 of 23, NaCl 33 of 37	12 of 23, 35 of 37	v6b/landscape/our_loci_summary.csv
+chrI relative depth -- NOT A v6b NUMBER	v6b writes no per-chromosome depth table; the old 1.22x figure comes from the pre-V6 qc_pipeline.R output. Re-run qc_pipeline.R or drop the partial-disomy sentence		(not written by v6b)
+depth threshold audit, replicate-well concordance	pools at 1x median depth replicate at 1.65-fold against a within-chromosome relocation null while emitting the most peaks (median 16-18 per pool); pools at 2x and 3-4x replicate at 2.40- and 3.03-fold, indistinguishable from 10-19x (3.09), while emitting the fewest (median 4-7). The break is at 1x, not 5x		(depth audit 2026-09-17; not written by v6b -- re-emit before submission)
+QC worked example, a true positive lost	S273 (well G09) and S276 (well G12) are 37x and 31x and phase cleanly, but are flagged because the skew rule scores a whole well on its median and their well-mates are badly skewed		(QC audit 2026-09-17)
+QC worked example, a false positive kept	all four A10 pools carry the misphasing signature; at min_med_depth = 5 two of them (S010, S298) stayed `main` because their own skew sat just under the cut and the two pools holding the evidence were excluded from the well median. At min_med_depth = 2 the well is flagged		(QC audit 2026-09-17)
