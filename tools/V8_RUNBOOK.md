@@ -48,24 +48,40 @@ When `qstat -u bruni` is empty:
 `-resume` reuses the two test wells. 384 tasks at up to 96 at a time.
 Done when `ls $P/v8/count_files/*.txt | wc -l` is 384 and qstat is empty.
 
-## 4. QC
+## Every new session (login node, or dtn2, both work)
 
-    qrsh -l h_rt=4:00:00,h_data=4G -pe shared 8
-    conda activate genomicsV2
-    bash $P/files_v8/qc_bam_generate.sh $P/v8/bam_files $P/v8/qc/bam_stats 8
-    XQTL_PROJ=$P/v8 Rscript $P/files_v8/qc_pipeline.R
-
-Writes `v8/qc/sample_allowlist.csv`, which the driver gates on.
-
-## 5. The analysis driver
-
+    ssh bruni@hoffman2.idre.ucla.edu
+    module load mamba && mamba activate genomicsV2     # or: conda activate genomicsV2
+    P=/u/project/kruglyak/bruni/projects/xQTLpaper
     cd $P/files_v8
-    qsub -cwd -o v8_driver.log -j y -l h_rt=48:00:00,h_data=8G,highp -pe shared 8 \
-         -b y "source /u/local/Modules/default/init/bash; module load mamba; \
-               mamba activate genomicsV2; Rscript xQTL_analysis8.R"
+    qstat -u bruni                                     # what is queued / running
 
-Cold start: no cache is copied, because every count changed. Writes
-`$P/v8/runs/v8/`. The GO permutations are the slow part (hours).
+`-V` on the qsub lines below passes this environment to the job; without
+`genomicsV2` active the job fails with "command not found".
+
+## 4. QC   (submitted 2026-10-06 as job v8_qc)
+
+    qsub -V -cwd -o v8_qc.log -j y -l h_rt=4:00:00,h_data=4G -pe shared 8 -N v8_qc -b y \
+      "bash $P/files_v8/qc_bam_generate.sh $P/v8/bam_files $P/v8/qc/bam_stats 8 && XQTL_PROJ=$P/v8 Rscript $P/files_v8/qc_pipeline.R"
+
+Progress: `ls $P/v8/qc/bam_stats/*.stats.txt | wc -l` (to 384), then `tail v8_qc.log`.
+Done when `$P/v8/qc/sample_allowlist.csv` exists and is recent:
+
+    ls -l $P/v8/qc/sample_allowlist.csv
+    wc -l $P/qc/sample_allowlist.csv $P/v8/qc/sample_allowlist.csv   # v7 vs v8
+
+## 5. The analysis driver   (queued behind v8_qc with -hold_jid)
+
+    qsub -V -cwd -o v8_driver.log -j y -l h_rt=48:00:00,h_data=8G,highp -pe shared 8 \
+         -N v8_driver -hold_jid v8_qc -b y "Rscript $P/files_v8/xQTL_analysis8.R"
+
+It waits in state `hqw` until v8_qc ends, then starts by itself. Cold start,
+no cache copied. Writes `$P/v8/runs/v8/`. Hours; the GO permutations are the
+slow part. Progress: `tail -20 $P/files_v8/v8_driver.log`.
+
+IF v8_qc FAILED (no new sample_allowlist.csv): `qdel v8_driver`, read
+`tail -60 v8_qc.log`, fix, and resubmit both. If the driver itself stops
+early, `tail -60 v8_driver.log` says where; do not delete anything.
 
 ## 6. Bring it down and hand it over
 
