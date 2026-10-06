@@ -51,7 +51,7 @@ SRA_COLS = ['sample_name', 'library_ID', 'title', 'library_strategy',
 
 def write(path, cols, rows):
     with open(path, 'w', newline='') as f:
-        w = csv.DictWriter(f, cols, delimiter='\t', extrasaction='raise')
+        w = csv.DictWriter(f, cols, delimiter='\t', lineterminator='\n', extrasaction='raise')
         w.writeheader()
         w.writerows(rows)
     print(f'{len(rows):4d} rows  {os.path.relpath(path, REPO)}')
