@@ -45,7 +45,7 @@ cp "$README" "$STAGE/README.md"
 for f in README.md MD5SUMS.txt INPUTS.tsv $(cd "$STAGE" && ls *.tar.gz); do
   if grep -qx "$f" <<<"$HAVE"; then echo "skip $f (already in draft)"; continue; fi
   echo "$(date +%T) put $f ($(du -h "$STAGE/$f" | cut -f1))"
-  curl -sf --retry 3 "${AUTH[@]}" --upload-file "$STAGE/$f" "$BUCKET/$f" > /dev/null
+  curl -f --progress-bar --retry 3 "${AUTH[@]}" --upload-file "$STAGE/$f" "$BUCKET/$f" > /dev/null
 done
 
 ## Zenodo's own checksums against ours
