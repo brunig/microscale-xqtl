@@ -86,13 +86,37 @@ Of 384 wells, 181 pools pass every filter (`databin == "main"`). They carry
 1,829 fitness peaks, of which 1,472 remain after masking MAT and HO, plus 363
 stress-contrast peaks.
 
-## Requirements
+## Software versions
 
-R 4.5 with `data.table`, `dplyr`, `tidyr`, `readr`, `ggplot2`, `patchwork`,
-`ragg`, `qs2`, `jsonlite`, `IRanges`, `GenomicRanges`. Python 3 with `Pillow`
-and `openpyxl`. Steps 1 to 2 also need Nextflow, samtools and GATK
-ASEReadCounter. The reference is sacCer3 with the 1,011-isolate SNP panel
-(Peter et al. 2018).
+Steps 1 to 5 ran on Hoffman2 in the conda environment `genomicsV2`. Its
+revision history shows one change after it was built (2026-04-15): on
+2026-08-21, two days after the alignment run (2026-08-19) and a month before
+the analysis runs (2026-09-21/22), samtools 1.24 was added (for QC) and
+htslib/bcftools went from 1.23.1 to 1.24. Neither is called by the alignment
+pipeline, so the versions below are the ones every step ran under.
+
+| step | software | version |
+|---|---|---|
+| 1 | Nextflow | 25.10.4 |
+| 1 | bwa (mem) | 0.7.19-r1273 |
+| 1 | sambamba | 1.0.1 |
+| 1 | GATK (ASEReadCounter) | 4.6.2.0, OpenJDK 23.0.2 |
+| 2 | samtools | 1.24 |
+| 2 to 4 | R | 4.3.3 |
+| 4 | xQTLStats | 0.2, github.com/joshsbloom/xQTLStats @ 080a156dcc |
+| 4 | data.table, dplyr, tidyr, readr, purrr | 1.17.8, 1.1.4, 1.3.1, 2.1.5, 1.1.0 |
+| 4 | ggplot2, ggrepel, patchwork | 3.5.2, 0.9.6, 1.3.2 |
+| 4 | qs2, pbmcapply | 0.1.5, 1.5.1 |
+| 4 | IRanges, GenomicRanges | 2.36.0, 1.54.1 (Bioconductor 3.18) |
+| 4 | ComplexHeatmap, circlize | 2.18.0, 0.4.18 |
+
+Steps 6 to 8 ran on a Mac (conda environment `genomics`): R 4.5.3 with
+data.table 1.18.2.1, dplyr 1.2.1, tidyr 1.3.2, readr 2.2.0, purrr 1.2.2,
+ggplot2 4.0.2, patchwork 1.3.2, ragg 1.5.2, qs2 0.1.7, jsonlite 2.0.0, IRanges
+2.44.0, GenomicRanges 1.62.1; Python 3.10.20 with openpyxl 3.1.5 and
+Pillow 12.3.0.
+
+The reference is sacCer3 with the 1,011-isolate SNP panel (Peter et al. 2018).
 
 ## Paths
 
