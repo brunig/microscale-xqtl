@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Build the NCBI BioSample and SRA metadata sheets for the raw reads.
 
-Two submissions under one BioProject, because the two sets reuse the same
-FASTQ names (Sample001...):
+ONE submission holding both sets:
   pools    384 segregant pools (plate map: parents/flatkey_A1.csv)
   parents  the haploid reference panel, plate A1ref (non-EMPTY wells)
+The two sets reuse FASTQ names (Sample001_S1_...), so parent files are
+uploaded under the prefix PARENT_PREFIX and named that way in the SRA sheet.
+Outputs: sra/biosample_all.xlsx and sra/sra_metadata_all.tsv (+ per-set TSVs).
 
 BioSample package: Microbe 1.0 (NCBI: unicellular microbes where MIxS does
 not fit; lab pools have no environment fields). Template: sra/template_Microbe.1.0.xlsx
@@ -34,6 +36,7 @@ REGIME = {'Glu': 'two 48-h passages in HCD medium',
           'Caf': 'two 48-h passages in HCD medium',
           'NaCl': 'two 48-h passages in HCD medium',
           'Ace': 'one 48-h passage in HCD medium'}
+PARENT_PREFIX = 'A1ref_'                # parent FASTQs renamed on upload
 NA_LAB = 'missing: lab stock'          # INSDC null term for laboratory material
 INSTRUMENT = 'Illumina NovaSeq X'
 DESIGN = ('Genomic DNA from a pool of haploid segregants (or a haploid parent '
@@ -162,6 +165,7 @@ def main():
         })
     write_biosample('biosample_pools', bs, CUSTOM_POOLS)
     write(os.path.join(OUT, 'sra_metadata_pools.tsv'), SRA_COLS, sra)
+    all_bs, all_sra = list(bs), list(sra)
 
     ## parents
     if not os.path.exists(PARENT_KEY):
@@ -193,7 +197,7 @@ def main():
                                + 'Sequenced as the reference panel for assigning wild parents to pools.',
             })
         seen[name].append(r['Wells'])
-        files = lanes_for(inv, 'parents', sid, i)
+        files = [PARENT_PREFIX + f for f in lanes_for(inv, 'parents', sid, i)]
         if inv is not None and len(files) not in (2, 4):
             problems.append(f'parents {sid}: {len(files)} files')
         sra.append({
@@ -212,6 +216,13 @@ def main():
         b['description'] += f' Plate A1ref well{"s" if len(w) > 1 else ""} {", ".join(w)}.'
     write_biosample('biosample_parents', bs, CUSTOM_PARENTS)
     write(os.path.join(OUT, 'sra_metadata_parents.tsv'), SRA_COLS, sra)
+
+    ## the combined submission
+    write_biosample('biosample_all', all_bs + bs, CUSTOM_POOLS + [c for c in CUSTOM_PARENTS if c not in CUSTOM_POOLS])
+    write(os.path.join(OUT, 'sra_metadata_all.tsv'), SRA_COLS, all_sra + sra)
+    fn = [r[c] for r in all_sra + sra for c in ('filename', 'filename2', 'filename3', 'filename4') if r[c]]
+    if len(fn) != len(set(fn)):
+        problems.append('duplicate filenames in the combined SRA sheet')
 
     if inv is None:
         print('NOTE: no sra/fastq_sizes.tsv yet; pool filenames assume 2 lanes, '
