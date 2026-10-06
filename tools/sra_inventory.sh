@@ -14,12 +14,12 @@ POOLS=/u/project/kruglyak/bruni/projects/xQTLpaper/fastq
 PARENTS=/u/project/kruglyak/bruni/projects/A1ref/fastq
 
 { printf 'set\tpath\tbytes\n'
-  find "$POOLS"   -name '*.fastq.gz' -printf 'pools\t%p\t%s\n'
-  find "$PARENTS" -name '*.fastq.gz' -printf 'parents\t%p\t%s\n'
-} | sort > "$OUT/fastq_sizes.tsv"
+  { find "$POOLS"   -name '*.fastq.gz' -printf 'pools\t%p\t%s\n'
+    find "$PARENTS" -name '*.fastq.gz' -printf 'parents\t%p\t%s\n'; } | sort
+} > "$OUT/fastq_sizes.tsv"
 
 ## MD5s, 8 at a time
-tail -n +2 "$OUT/fastq_sizes.tsv" | cut -f2 | xargs -P 8 -n 1 md5sum > "$OUT/fastq_md5.txt"
+tail -n +2 "$OUT/fastq_sizes.tsv" | cut -f2 | tr '\n' '\0' | xargs -0 -P 8 -n 1 md5sum > "$OUT/fastq_md5.txt"
 
 {
   echo "== files per set"; tail -n +2 "$OUT/fastq_sizes.tsv" | cut -f1 | sort | uniq -c

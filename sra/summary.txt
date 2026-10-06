@@ -1,0 +1,40 @@
+== files per set
+    193 parents
+   1540 pools
+      1 set
+== total size per set
+pools 193.3 GB
+parents 42.1 GB
+set 0.0 GB
+== lanes and reads (pools)
+    482 _L001_R1_
+    482 _L001_R2_
+    385 _L002_R1_
+    385 _L002_R2_
+== pool files not matching SampleNNN_SNNN_L00N_RN_001
+Undetermined_S0_L001_R1_001.fastq.gz
+Undetermined_S0_L001_R2_001.fastq.gz
+Undetermined_S0_L002_R1_001.fastq.gz
+Undetermined_S0_L002_R2_001.fastq.gz
+== samples missing a lane or read (pools)
+== smallest 5 pool files
+pools	/u/project/kruglyak/bruni/projects/xQTLpaper/fastq/Sample241_S241_L001_R2_001.fastq.gz	41804
+pools	/u/project/kruglyak/bruni/projects/xQTLpaper/fastq/Sample241_S241_L001_R1_001.fastq.gz	43109
+pools	/u/project/kruglyak/bruni/projects/xQTLpaper/fastq/Sample241_S241_L002_R2_001.fastq.gz	44658
+pools	/u/project/kruglyak/bruni/projects/xQTLpaper/fastq/Sample241_S241_L002_R1_001.fastq.gz	45672
+pools	/u/project/kruglyak/bruni/projects/xQTLpaper/fastq/Sample217_S217_L001_R2_001.fastq.gz	64725
+== parent dir layout (first 6)
+parents	/u/project/kruglyak/bruni/projects/A1ref/fastq/Extra Files from BCL Convert 11/23/2025 15:51:50 877293446_ds.d747b176fff8427b91c2dd8ade83ae0f/output/fastqs/Samples/Lane_1/Undetermined/Undetermined_S0_L001_R1_001.fastq.gz	828299324
+parents	/u/project/kruglyak/bruni/projects/A1ref/fastq/Extra Files from BCL Convert 11/23/2025 15:51:50 877293446_ds.d747b176fff8427b91c2dd8ade83ae0f/output/fastqs/Samples/Lane_1/Undetermined/Undetermined_S0_L001_R2_001.fastq.gz	826874948
+parents	/u/project/kruglyak/bruni/projects/A1ref/fastq/Sample001_L1_ds.aeb29722d977423797fdfb3c613e251d/Sample001_S1_L001_R1_001.fastq.gz	54908238
+parents	/u/project/kruglyak/bruni/projects/A1ref/fastq/Sample001_L1_ds.aeb29722d977423797fdfb3c613e251d/Sample001_S1_L001_R2_001.fastq.gz	57476148
+parents	/u/project/kruglyak/bruni/projects/A1ref/fastq/Sample002_L1_ds.527703c2b5d44a8b93500053305f520d/Sample002_S2_L001_R1_001.fastq.gz	25735172
+parents	/u/project/kruglyak/bruni/projects/A1ref/fastq/Sample002_L1_ds.527703c2b5d44a8b93500053305f520d/Sample002_S2_L001_R2_001.fastq.gz	26658125
+== reads per file, first two pool samples, both lanes
+Sample001_S1_L001_R1_001.fastq.gz 5962950
+Sample001_S1_L002_R1_001.fastq.gz 6539194
+Sample002_S2_L001_R1_001.fastq.gz 7008769
+Sample002_S2_L002_R1_001.fastq.gz 7513526
+== first header line, lane 1 and lane 2
+@LH00168:130:22LJCCLT1:1:1101:38017:1096 1:N:0:NAACTGAGCG+CNCTCCACGA
+@LH00168:130:22LJCCLT1:2:1101:41965:1048 1:N:0:GNACTGAGCG+CNCTCCACGA

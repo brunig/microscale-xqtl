@@ -113,8 +113,12 @@ def inventory():
     if not os.path.exists(INVENTORY):
         return None
     inv = defaultdict(dict)
-    for r in csv.DictReader(open(INVENTORY), delimiter='\t'):
-        inv[r['set']][os.path.basename(r['path'])] = r['path']
+    # sra_inventory.sh sorts its output, header included, so the header row can
+    # sit anywhere in the file: read positionally and drop it.
+    for row in csv.reader(open(INVENTORY), delimiter='\t'):
+        if row[0] == 'set':
+            continue
+        inv[row[0]][os.path.basename(row[1])] = row[1]
     return inv
 
 
