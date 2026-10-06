@@ -563,7 +563,7 @@ paths_by_env = list(
         count_dir    = '/u/project/kruglyak/bruni/projects/xQTLpaper/v8/count_files/',   # v8
         key.file     = '/u/project/kruglyak/bruni/projects/xQTLpaper/files/flatkey_A1.csv',
         qc_dir       = '/u/project/kruglyak/bruni/projects/xQTLpaper/v8/qc',             # v8
-        script_dir   = '/u/project/kruglyak/bruni/projects/xQTLpaper/files',
+        script_dir   = '/u/project/kruglyak/bruni/projects/xQTLpaper/files_v8',   # v8
         gff_file     = '/u/project/kruglyak/PUBLIC_SHARED/yeast/reference/yeast_ref/saccharomyces_cerevisiae.gff.gz',
         cnv.file     = '/u/project/kruglyak/PUBLIC_SHARED/yeast/reference/3000/full3039Matrix.CNVnatorResults.tsv',
         fungamr_file = '/u/project/kruglyak/PUBLIC_SHARED/yeast/reference/fungAMR/41564_2025_2084_MOESM3_ESM.xlsx',
@@ -636,7 +636,7 @@ script_snap = file.path(run_dir, 'scripts')     # copies of what ran
 # into runs/v7/scripts/ as "the code that produced this run" -- the exact
 # provenance failure the run umbrella exists to prevent.
 driver_file = if (is.na(script_dir)) NA_character_ else
-              file.path(script_dir, 'xQTL_analysis7.R')
+              file.path(script_dir, 'xQTL_analysis8.R')
 
 for (.d in Filter(function(x) !is.na(x),
                   c(run_dir, out_dir, cache_dir, fig_dir, flag_dir,
