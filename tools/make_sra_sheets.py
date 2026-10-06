@@ -6,7 +6,9 @@ FASTQ names (Sample001...):
   pools    384 segregant pools (plate map: parents/flatkey_A1.csv)
   parents  the haploid reference panel, plate A1ref (non-EMPTY wells)
 
-BioSample package: Microbe 1.0. Attributes describe the biological sample
+BioSample package: Microbe 1.0 (NCBI: unicellular microbes where MIxS does
+not fit; lab pools have no environment fields). Template: sra/template_Microbe.1.0.xlsx
+and the filled copies are sra/biosample_*.xlsx, ready to upload. Attributes describe the biological sample
 only; analysis status (main / flagged) belongs in the paper, not here, and
 changes between runs.
 
@@ -39,19 +41,49 @@ DESIGN = ('Genomic DNA from a pool of haploid segregants (or a haploid parent '
           'dual-indexed PCR with IDT for Illumina Nextera DNA UD indexes, '
           '2 x 150 bp paired-end sequencing.')
 
-BIOSAMPLE_COLS = ['*sample_name', 'sample_title', 'bioproject_accession',
-                  '*organism', 'strain', 'isolate', 'isolation_source',
-                  '*collection_date', '*geo_loc_name', '*sample_type',
-                  'genotype', 'description']
+TEMPLATE = os.path.join(OUT, 'template_Microbe.1.0.xlsx')
+# custom attributes (BioSample accepts extra columns) appended after the template's
+CUSTOM_POOLS = ['treatment', 'growth_protocol', 'cross', 'wild_parent', 'common_parent', 'plate_map_wild_parent',
+                'parent_assignment', 'plate', 'well']
+CUSTOM_PARENTS = ['plate', 'wells', 'yeast_1011_genomes_code']
 SRA_COLS = ['sample_name', 'library_ID', 'title', 'library_strategy',
             'library_source', 'library_selection', 'library_layout',
             'platform', 'instrument_model', 'design_description', 'filetype',
             'filename', 'filename2', 'filename3', 'filename4']
 
 
+def template_cols():
+    import openpyxl
+    ws = openpyxl.load_workbook(TEMPLATE).active
+    for row in ws.iter_rows(values_only=True):
+        if row and row[0] == '*sample_name':
+            return [c for c in row if c]
+    sys.exit('no header row in template')
+
+
+def write_biosample(stem, rows, custom):
+    """TSV plus the NCBI template filled in place (comment rows kept)."""
+    import openpyxl
+    cols = template_cols() + custom
+    unknown = {k for r in rows for k in r} - set(cols)
+    if unknown:
+        sys.exit(f'attributes not in template or custom list: {unknown}')
+    write(os.path.join(OUT, stem + '.tsv'), cols, rows)
+    wb = openpyxl.load_workbook(TEMPLATE); ws = wb.active
+    hdr = next(i for i, row in enumerate(ws.iter_rows(values_only=True), 1)
+               if row and row[0] == '*sample_name')
+    for j, c in enumerate(cols, 1):
+        ws.cell(hdr, j, c)
+    for i, r in enumerate(rows, hdr + 1):
+        for j, c in enumerate(cols, 1):
+            ws.cell(i, j, r.get(c, ''))
+    wb.save(os.path.join(OUT, stem + '.xlsx'))
+    print(f'{len(rows):4d} rows  sra/{stem}.xlsx')
+
+
 def write(path, cols, rows):
     with open(path, 'w', newline='') as f:
-        w = csv.DictWriter(f, cols, delimiter='\t', lineterminator='\n', extrasaction='raise')
+        w = csv.DictWriter(f, cols, delimiter='\t', lineterminator='\n', extrasaction='raise', restval='')
         w.writeheader()
         w.writerows(rows)
     print(f'{len(rows):4d} rows  {os.path.relpath(path, REPO)}')
@@ -101,10 +133,19 @@ def main():
             '*geo_loc_name': NA_LAB,
             '*sample_type': 'pooled haploid segregant culture',
             'genotype': f'haploid segregants of {wild} x BBQ',
-            'description': ('Wild parent identified from sequence; plate map named '
-                            f'{r["parent_nominal"]}.' if wild != r['parent_nominal'] else
-                            'Wild parent as on the plate map, confirmed from sequence.')
-                           + (' Parent assignment unresolved.' if unresolved else ''),
+            'treatment': COND[cond],
+            'growth_protocol': REGIME[cond],
+            'cross': f'{wild} x BBQ', 'wild_parent': wild, 'common_parent': 'BBQ',
+            'plate_map_wild_parent': r['parent_nominal'],
+            'parent_assignment': 'unresolved' if unresolved else (
+                'reassigned from sequence' if wild != r['parent_nominal'] else 'confirmed from sequence'),
+            'plate': r['Plate'], 'well': r['Wells'],
+            'description': (
+                f'Wild parent not resolved from sequence; best call {wild}, plate map named {r["parent_nominal"]}.'
+                if unresolved else
+                f'Wild parent identified from sequence; plate map named {r["parent_nominal"]}.'
+                if wild != r['parent_nominal'] else
+                'Wild parent as on the plate map, confirmed from sequence.'),
         })
         files = lanes_for(inv, 'pools', sid, i)
         if len(files) != 4:
@@ -119,7 +160,7 @@ def main():
             **{c: (files[k] if k < len(files) else '')
                for k, c in enumerate(['filename', 'filename2', 'filename3', 'filename4'])},
         })
-    write(os.path.join(OUT, 'biosample_pools.tsv'), BIOSAMPLE_COLS, bs)
+    write_biosample('biosample_pools', bs, CUSTOM_POOLS)
     write(os.path.join(OUT, 'sra_metadata_pools.tsv'), SRA_COLS, sra)
 
     ## parents
@@ -147,6 +188,7 @@ def main():
                 '*collection_date': NA_LAB, '*geo_loc_name': NA_LAB,
                 '*sample_type': 'haploid strain culture',
                 'genotype': 'haploid',
+                'plate': 'A1ref', 'wells': '', 'yeast_1011_genomes_code': code,
                 'description': (f'1011 Yeast Genomes code {code}. ' if code else '')
                                + 'Sequenced as the reference panel for assigning wild parents to pools.',
             })
@@ -166,8 +208,9 @@ def main():
         })
     for b in bs:
         w = seen[b['*sample_name']]
+        b['wells'] = ', '.join(w)
         b['description'] += f' Plate A1ref well{"s" if len(w) > 1 else ""} {", ".join(w)}.'
-    write(os.path.join(OUT, 'biosample_parents.tsv'), BIOSAMPLE_COLS, bs)
+    write_biosample('biosample_parents', bs, CUSTOM_PARENTS)
     write(os.path.join(OUT, 'sra_metadata_parents.tsv'), SRA_COLS, sra)
 
     if inv is None:
