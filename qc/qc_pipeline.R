@@ -33,11 +33,14 @@ library(readr)
 
 
 # ── QC0. Configuration ────────────────────────────────────────────────
-proj_dir   = '/u/project/kruglyak/bruni/projects/xQTLpaper'
-key.file   = file.path(proj_dir, 'files', 'flatkey.csv')
+# v8: the alignment being QC'd is chosen by XQTL_PROJ (default: the original
+# tree). The key always comes from the shared files/ directory.
+proj_root  = '/u/project/kruglyak/bruni/projects/xQTLpaper'
+proj_dir   = Sys.getenv('XQTL_PROJ', proj_root)
+key.file   = file.path(proj_root, 'files', 'flatkey.csv')
 count_dir  = file.path(proj_dir, 'count_files')
 qc_dir     = file.path(proj_dir, 'qc')
-stats_dir  = file.path(qc_dir, 'samtools_stats')   # from qc_bam_generate.sh
+stats_dir  = file.path(qc_dir, 'bam_stats')        # from qc_bam_generate.sh (its default OUT_DIR)
 fig_dir    = file.path(qc_dir, 'figures')
 dir.create(fig_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -129,12 +132,12 @@ parse_stats = function(path) {
 
 bam.file = file.path(qc_dir, 'bam_qc.csv')
 if ('bam' %in% stages && dir.exists(stats_dir)) {
-    sf = list.files(stats_dir, pattern = '\\.stats$', full.names = TRUE)
+    sf = list.files(stats_dir, pattern = '\\.stats(\\.txt)?$', full.names = TRUE)
     cat('parsing', length(sf), 'samtools stats files\n')
     bam = bind_rows(lapply(sf, function(p) {
         d = tryCatch(parse_stats(p), error = function(e) NULL)
         if (is.null(d)) return(NULL)
-        d$Sample_ID = sub('\\.stats$', '', basename(p))
+        d$Sample_ID = sub('\\.stats(\\.txt)?$', '', basename(p))
         d
     }))
     if (nrow(bam)) write_csv(bam, bam.file)

@@ -8,6 +8,7 @@ params.vcf       = null
 params.outdir    = null
 params.workdir   = null
 params.conda_env = 'genomicsV2'
+params.only      = null   // v8: comma-separated Sample_IDs for a test run; null = all
 
 // ── Validate required parameters ────────────────────────────
 if (!params.keyfile)   error "Missing required param: --keyfile"
@@ -26,32 +27,40 @@ Channel
         rows.withIndex().collect { row, idx ->
             def sid = row.'Sample_ID'
             def s = idx + 1
-            // BaseSpace puts FASTQs in a sample-named subdirectory
-            def r1 = file("${params.fastq_dir}/${sid}*/${sid}_S${s}_L001_R1_001.fastq.gz")
-            def r2 = file("${params.fastq_dir}/${sid}*/${sid}_S${s}_L001_R2_001.fastq.gz")
-            // file() with glob returns a list; fall back to flat directory
-            if (!r1) r1 = file("${params.fastq_dir}/${sid}_S${s}_L001_R1_001.fastq.gz")
-            if (!r2) r2 = file("${params.fastq_dir}/${sid}_S${s}_L001_R2_001.fastq.gz")
-            def f1 = r1 instanceof List ? r1[0] : r1
-            def f2 = r2 instanceof List ? r2[0] : r2
-            if (!f1.exists()) error "FASTQ R1 not found for sample ${sid} (S${s}): looked in ${params.fastq_dir}/${sid}*/ and ${params.fastq_dir}/"
-            if (!f2.exists()) error "FASTQ R2 not found for sample ${sid} (S${s}): looked in ${params.fastq_dir}/${sid}*/ and ${params.fastq_dir}/"
+            // V8: EVERY LANE. Up to v7 this matched _L001_ only, so lane 2 of a
+            // two-lane NovaSeq X run was never aligned. Lanes are now globbed,
+            // sorted, checked to pair up R1/R2, and concatenated into bwa.
+            // BaseSpace puts FASTQs in a sample-named subdirectory; else flat.
+            def pick = { rd ->
+                def g = files("${params.fastq_dir}/${sid}*/${sid}_S${s}_L00*_${rd}_001.fastq.gz")
+                if (!g) g = files("${params.fastq_dir}/${sid}_S${s}_L00*_${rd}_001.fastq.gz")
+                g.sort { it.name }
+            }
+            def f1 = pick('R1'), f2 = pick('R2')
+            if (!f1) error "FASTQ R1 not found for sample ${sid} (S${s}) in ${params.fastq_dir}"
+            def lanes1 = f1.collect { (it.name =~ /_L00\d_/)[0] }
+            def lanes2 = f2.collect { (it.name =~ /_L00\d_/)[0] }
+            if (lanes1 != lanes2) error "R1/R2 lanes differ for ${sid}: ${lanes1} vs ${lanes2}"
             tuple(sid, f1, f2)
         }
     }
+    // filter AFTER the S-number is taken from the row index, so a test run
+    // on a few samples still finds the right files
+    .filter { params.only ? (it[0] in params.only.tokenize(',')) : true }
     .set { samples_ch }
 
 process ALIGN_SORT_COUNT {
     tag "${sample_id}"
     cpus 2
     memory '4 GB'
-    time '1h'
+    time '4h'      // v8: both lanes, about twice v7's reads
 
     publishDir "${params.outdir}/bam_files",   mode: 'copy', pattern: '*.bam*'
+    publishDir "${params.outdir}/bam_files",   mode: 'copy', pattern: '*.lanes'
     publishDir "${params.outdir}/count_files",  mode: 'copy', pattern: '*.txt'
 
     input:
-    tuple val(sample_id), path(r1), path(r2)
+    tuple val(sample_id), path(r1), path(r2)      // lists: one file per lane
     path genome
     path genome_indices
     path vcf
@@ -60,13 +69,17 @@ process ALIGN_SORT_COUNT {
     output:
     tuple val(sample_id), path("${sample_id}.bam"), path("${sample_id}.bam.bai"), emit: bam
     tuple val(sample_id), path("${sample_id}.txt"), emit: counts
+    path "${sample_id}.lanes"
 
     script:
     """
-    # Align and sort
+    # record exactly which files went in (audit trail for the lane fix)
+    ls -l ${r1} ${r2} > ${sample_id}.lanes
+
+    # Align and sort; all lanes concatenated (gzip members concatenate cleanly)
     bwa mem -t ${task.cpus} \\
         -R '@RG\\tID:${sample_id}\\tSM:${sample_id}' \\
-        ${genome} ${r1} ${r2} | \\
+        ${genome} <(cat ${r1}) <(cat ${r2}) | \\
     sambamba view --nthreads=${task.cpus} --sam-input --format=bam --with-header /dev/stdin | \\
     sambamba sort --nthreads=${task.cpus} --tmpdir=\${TMPDIR:-/tmp} --out=${sample_id}.bam /dev/stdin
 

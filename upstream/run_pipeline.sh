@@ -41,8 +41,11 @@ elif [ "$MODE" == "hoffman2" ]; then
     USERNAME="bruni"
     PROJECT_ROOT="/u/project/kruglyak/${USERNAME}/projects/xQTLpaper"
     FASTQ_DIR="${PROJECT_ROOT}/fastq"
-    OUTDIR="${PROJECT_ROOT}"
-    WORKDIR="/u/scratch/b/bruni/xQTLpaper"
+    # v8: OUTDIR/WORKDIR overridable so a new alignment never overwrites the
+    # last one, e.g.  OUTDIR=$PROJECT_ROOT/v8 WORKDIR=/u/scratch/b/bruni/xQTLpaper_v8
+    # ONLY=Sample001,Sample002 runs just those samples (a test).
+    OUTDIR="${OUTDIR:-${PROJECT_ROOT}}"
+    WORKDIR="${WORKDIR:-/u/scratch/b/bruni/xQTLpaper}"
     GENOME="/u/project/kruglyak/PUBLIC_SHARED/yeast/reference/1011/sacCer3.fasta"
     VCF="/u/project/kruglyak/PUBLIC_SHARED/yeast/reference/3000/VCFs_SNPs/1011_allhet_SNPs.vcf.gz"
 
@@ -71,7 +74,7 @@ nextflow run ${PIPELINE} \\
     --outdir ${OUTDIR} \\
     --workdir ${WORKDIR} \\
     --genome ${GENOME} \\
-    --vcf ${VCF} \\
+    --vcf ${VCF} ${ONLY:+--only ${ONLY}} \\
     -resume
 QSUB
 
