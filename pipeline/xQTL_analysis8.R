@@ -665,7 +665,7 @@ match_keys    = c('parent_a', 'parent_alpha', 'Wells')
 # to have run (qtl_candidates.R consumes qtl_variants_<tag>.csv).
 # 'go' is V7's §18 and needs only the peak tables -- no variants, no cache.
 stages = c('figures', 'repro', 'variants', 'cnv', 'enrich',
-           'landscape', 'candidates', 'go')
+           'landscape', 'candidates', 'go', 'peakrules')
 force  = character(0)   # e.g. c('afds', 'fit_results', 'drug_results')
 
 # For the V6.1 rerun off the v6 cache:
@@ -740,6 +740,39 @@ afd_sel_strength = 0.9
 # contributes ~14 spurious peaks. Flags 12 wells; AAL sits at 0.042
 # to 0.045 and stays in main.
 skew_cut = 0.05
+
+# ---- Peak rules (§19, agreed 2026-10-07) -------------------------------
+# Applied AFTER the peaks are called, to both peak sets. They add columns;
+# they never delete a row, so every downstream table can still be built
+# from the unruled set.
+#   1. merged_away. Adjacent summits in one pool x chromosome are one peak
+#      unless the LOD between them falls to rule_merge_valley x the smaller
+#      summit. The lower summit is marked merged_away. Peak COUNTS use the
+#      survivors; the permutation tests work on intervals, and a merged
+#      summit sits inside its neighbour's.
+#   2. genotype_dead_area. FLAG, never mask (Josh). A site is dead for a
+#      cross when its main pools hold >= rule_dead_min_reads reads and one
+#      parental allele is never seen. A peak is flagged when >= rule_dead_frac
+#      of the sites within rule_dead_window of its summit are dead: the
+#      mapping there is suspect (wrong parent genotype, or read loss).
+#   3. pool_off_wellmates. FLAG, pool stays in main. A well's four conditions
+#      share parents and starting culture, so a pool whose genome-wide AF
+#      departs from all of its well-mates had something happen in that one
+#      culture (a bottleneck, most likely). Both must hold:
+#        share of genome with |afd - 0.5| > rule_far_af exceeds the well-mate
+#        median by >= rule_far_excess, AND share of genome at LOD >=
+#        LOD_threshold is >= rule_sig_frac. The second clause separates a
+#        bottleneck from the loess wander of a shallow pool, which drifts
+#        from 0.5 without LOD support. MAT, HO and chrVII are excluded from
+#        both shares. v8b: flags Sample194 and Sample204 only.
+#      Report main results with and without the flagged pools.
+rule_merge_valley   = 0.5
+rule_dead_min_reads = 20
+rule_dead_window    = 20000
+rule_dead_frac      = 0.25
+rule_far_af         = 0.15
+rule_far_excess     = 0.25
+rule_sig_frac       = 0.5
 
 # Loess undershoot at chromosome ends puts healthy samples slightly
 # outside [0,1], so divergence is a FRACTION, not a min/max test —
@@ -3907,6 +3940,112 @@ say("are not: the genes under one locus are physical neighbours.")
 invisible(TRUE)
 }
 
+# ── Peak rules (§19) ─────────────────────────────────────────────────
+# Reads only the run tree (qc/results_key.csv, contrasts/*_peaks.csv and the
+# two result caches), so it can be re-applied to a finished run without
+# re-running anything:  Rscript tools/apply_peak_rules.R <run_dir> <prefix>
+# Writes OUT/fit_peaks_ruled.csv, stress_peaks_ruled.csv (the peak tables
+# plus rule columns, no row removed), pool_flags.csv and prints a summary.
+qtl_peak_rules_run = function(RUN_DIR, CACHE_PREFIX, OUT,
+                              LOD_THR = 5, MERGE_VALLEY = 0.5,
+                              DEAD_MIN_READS = 20, DEAD_WINDOW = 20000, DEAD_FRAC = 0.25,
+                              FAR_AF = 0.15, FAR_EXCESS = 0.25, SIG_FRAC = 0.5) {
+    suppressMessages(library(data.table))
+    dir.create(OUT, showWarnings = FALSE, recursive = TRUE)
+    key  = fread(file.path(RUN_DIR, 'qc', 'results_key.csv'))
+    main = key[databin == 'main', Sample_ID]
+    fitp = fread(file.path(RUN_DIR, 'contrasts', 'fit_peaks.csv'))
+    strp = fread(file.path(RUN_DIR, 'contrasts', 'stress_peaks.csv'))
+    if ('L' %in% names(strp)) setnames(strp, c('L', 'R'), c('pool_L', 'pool_R'))   # see V7 note on L/R masking
+    ## excluded from the genome-wide pool shares: MAT, HO, and chrVII (the
+    ## BBQ growth locus every pool carries)
+    xmask = function(c, p) (c == 'chrIII' & p >= 125000 & p <= 215000) |
+                           (c == 'chrIV' & p >= 15000 & p <= 60000) | c == 'chrVII'
+
+    ## per-pool traces from the fitness cache: LOD for the merge rule, phased
+    ## reads for dead sites, afd + LOD for the pool shares
+    fr = qs2::qs_read(file.path(RUN_DIR, 'cache', paste0(CACHE_PREFIX, 'fit_results.qs')))
+    TR = list(); RD = list(); PS = list()
+    for (S in intersect(key[has_result == TRUE, Sample_ID], names(fr))) {
+        d = as.data.frame(fr[[S]])
+        p1 = d[[paste0('p1_', S)]]; p2 = d[[paste0('p2_', S)]]; afd = d[[paste0('afd_', S)]]
+        TR[[S]] = data.table(id = S, chrom = d$chrom, pos = d$physical.position, LOD = d$LOD)
+        ok = !is.na(afd) & !is.na(d$LOD) & !xmask(d$chrom, d$physical.position)
+        PS[[S]] = data.table(sample = S, frac_far = mean(abs(afd[ok] - 0.5) > FAR_AF),
+                             frac_sig = mean(d$LOD[ok] >= LOD_THR))
+        if (S %in% main) RD[[S]] = data.table(sample = S, chrom = d$chrom, pos = d$physical.position, p1 = p1, p2 = p2)
+    }
+    rm(fr); invisible(gc())
+    dr = qs2::qs_read(file.path(RUN_DIR, 'cache', paste0(CACHE_PREFIX, 'drug_results.qs')))
+    for (k in names(dr)) { d = as.data.frame(dr[[k]])
+        if (!'result.LOD' %in% names(d)) next
+        TR[[k]] = data.table(id = k, chrom = d$result.chrom, pos = d$result.physical.position, LOD = d$result.LOD) }
+    rm(dr); invisible(gc())
+    TR = rbindlist(TR)[!is.na(LOD)]; setkey(TR, id, chrom, pos)
+
+    ## rule 2 input: dead sites per cross, from that cross's main pools
+    RD = merge(rbindlist(RD), key[, .(sample = Sample_ID, cross)], by = 'sample')
+    dead = RD[!is.na(p1) & !is.na(p2), .(p1 = sum(p1), p2 = sum(p2)), by = .(cross, chrom, pos)][
+              p1 + p2 >= DEAD_MIN_READS][, dead := p1 == 0 | p2 == 0]
+    setkey(dead, cross, chrom, pos); rm(RD)
+
+    ## MAT/HO summits (the MASK_REPORT windows, by summit; this reproduces the
+    ## retained 1,472 of v7) take no part in the merge, or a masked MAT summit
+    ## would absorb a real neighbour and both would vanish from the counts
+    in_mathho = function(c, p) (c == 'chrIII' & p >= 125000 & p <= 215000) | (c == 'chrIV' & p >= 15000 & p <= 60000)
+
+    apply_rules = function(pk, trace_id) {
+        pk = copy(pk); pk[, tid := trace_id]
+        mk = pk[in_mathho(seqnames, peak.pos)]; pk = pk[!in_mathho(seqnames, peak.pos)]
+        pk[, `:=`(summit_lod = NA_real_, dead_frac = NA_real_)]
+        for (i in seq_len(nrow(pk))) { r = pk[i]
+            t = TR[.(r$tid, r$seqnames)]
+            if (nrow(t)) pk$summit_lod[i] = t$LOD[which.min(abs(t$pos - r$peak.pos))]
+            w = dead[.(r$cross, r$seqnames)][abs(pos - r$peak.pos) <= DEAD_WINDOW]
+            if (nrow(w) && !is.na(w$dead[1])) pk$dead_frac[i] = mean(w$dead) }
+        setorder(pk, tid, seqnames, peak.pos)
+        pk[, region := { reg = integer(.N); reg[1] = 1L
+            if (.N > 1) { t = TR[.(.BY$tid, .BY$seqnames)]
+                for (j in 2:.N) {
+                    v = suppressWarnings(min(t$LOD[t$pos >= peak.pos[j-1] & t$pos <= peak.pos[j]], na.rm = TRUE))
+                    lo = min(summit_lod[j-1], summit_lod[j])
+                    split = !is.finite(v) || is.na(lo) || v <= MERGE_VALLEY * lo
+                    reg[j] = reg[j-1] + as.integer(split) } }
+            reg }, by = .(tid, seqnames)]
+        pk[, merged_away := !is.na(summit_lod) & summit_lod != max(summit_lod, na.rm = TRUE) & .N > 1,
+           by = .(tid, seqnames, region)]
+        pk[, genotype_dead_area := !is.na(dead_frac) & dead_frac >= DEAD_FRAC]
+        mk[, `:=`(summit_lod = NA_real_, dead_frac = NA_real_, region = NA_integer_,
+                  merged_away = FALSE, genotype_dead_area = FALSE)]
+        rbind(pk, mk)[]
+    }
+    fitr = apply_rules(fitp, fitp$sample)
+    strr = apply_rules(strp, paste0(strp$pool_L, '_vs_', strp$pool_R))
+
+    ## rule 3: pool far off its well-mates
+    PS = merge(rbindlist(PS), key[, .(sample = Sample_ID, Wells, cross, condition, databin, med_depth)], by = 'sample')
+    PS[, far_wellmates := vapply(seq_len(.N), function(i)
+          median(PS$frac_far[PS$Wells == Wells[i] & PS$sample != sample[i]]), numeric(1))]
+    PS[, pool_off_wellmates := !is.na(far_wellmates) & frac_far - far_wellmates >= FAR_EXCESS & frac_sig >= SIG_FRAC]
+    off = PS[pool_off_wellmates == TRUE, sample]
+    fitr[, pool_off_wellmates := sample %in% off]
+    strr[, pool_off_wellmates := pool_L %in% off | pool_R %in% off]
+
+    fwrite(fitr[, !'tid'], file.path(OUT, 'fit_peaks_ruled.csv'))
+    fwrite(strr[, !'tid'], file.path(OUT, 'stress_peaks_ruled.csv'))
+    fwrite(PS, file.path(OUT, 'pool_flags.csv'))
+
+    for (nm in c('fitness', 'stress')) {
+        p = if (nm == 'fitness') fitr else strr; p = p[databin == 'main']
+        cat(sprintf('%-8s main peaks %5d | merged away %4d -> %5d | genotype-dead flagged %3d (%s) | in off-well-mate pools %3d\n',
+            nm, nrow(p), sum(p$merged_away), sum(!p$merged_away), sum(!p$merged_away & p$genotype_dead_area),
+            paste(p[!merged_away & genotype_dead_area == TRUE, .N, by = cross][order(-N), sprintf('%s %d', cross, N)], collapse = ', '),
+            sum(!p$merged_away & p$pool_off_wellmates)))
+    }
+    cat('pools off their well-mates (main): ', if (length(off)) paste(intersect(off, main), collapse = ', ') else 'none', '\n', sep = '')
+    invisible(list(fit = fitr, stress = strr, pools = PS))
+}
+
 # ── 16. Downstream: genome-wide landscape ────────────────────────
 st_land = NA_integer_
 if (running('landscape'))
@@ -3971,13 +4110,28 @@ if (running('go')) {
     }
 }
 
+# ── 19. Peak rules ───────────────────────────────────────────────────
+# Agreed 2026-10-07; settings and rationale are in §0 beside the thresholds.
+st_rules = NA_integer_
+if (running('peakrules'))
+    st_rules = run_inline('peakrules',
+        function() qtl_peak_rules_run(RUN_DIR = run_dir, CACHE_PREFIX = cache_prefix,
+                                      OUT = file.path(run_dir, 'peakrules'),
+                                      LOD_THR = LOD_threshold, MERGE_VALLEY = rule_merge_valley,
+                                      DEAD_MIN_READS = rule_dead_min_reads, DEAD_WINDOW = rule_dead_window,
+                                      DEAD_FRAC = rule_dead_frac, FAR_AF = rule_far_af,
+                                      FAR_EXCESS = rule_far_excess, SIG_FRAC = rule_sig_frac))
+
 # The manifest is re-saved with the downstream exit codes. §15 already
 # wrote one, so a crash in §16-18 still leaves a manifest behind; this
 # overwrites it with the complete record.
 manifest$go = list(source = go_source, ont = go_ont, perms = go_perms,
                    peak_sets = go_peak_sets, gaf = gaf_file, obo = obo_file,
                    min_term = go_min_term, max_term = go_max_term)
-manifest$downstream = list(landscape = st_land, candidates = st_cand, go = st_go,
+manifest$peakrules  = list(merge_valley = rule_merge_valley, dead_min_reads = rule_dead_min_reads,
+                           dead_window = rule_dead_window, dead_frac = rule_dead_frac, far_af = rule_far_af,
+                           far_excess = rule_far_excess, sig_frac = rule_sig_frac)
+manifest$downstream = list(landscape = st_land, candidates = st_cand, go = st_go, peakrules = st_rules,
                            land_dir = land_dir, cand_dir = cand_dir,
                            go_dir = go_dir)
 manifest$run_end    = format(Sys.time())
@@ -3985,7 +4139,7 @@ qs2::qs_save(manifest, file.path(out_dir, 'run_manifest.qs'))
 
 cat('\n══ run ', run_tag, ' complete ══\n', sep = '')
 cat('everything this run produced is under:\n  ', run_dir, '\n', sep = '')
-.bad = c(st_land, unlist(st_cand), st_go)
+.bad = c(st_land, unlist(st_cand), st_go, st_rules)
 .bad = .bad[!is.na(.bad) & .bad != 0L]
 if (length(.bad))
     cat('!! ', length(.bad), ' downstream section(s) exited non-zero — ',
