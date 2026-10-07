@@ -2784,7 +2784,8 @@ pad <- 0.04 * (yhi - ylo); ylo <- ylo - pad; yhi <- yhi + pad + 10  # headroom f
 pA <- ggplot(d, aes(gmid, signed)) +
   chrom_bands(ylo, yhi) +
   pub_rules() +
-  geom_area(aes(fill = factor(direction, c(-1, 1))), position = "identity") +
+  geom_area(aes(fill = factor(direction, c(-1, 1)), group = interaction(direction, chrom)),
+            position = "identity") +   # one area per chromosome: never bridge the gap
   geom_hline(yintercept = 0, colour = COL_INK2, linewidth = 0.3) +
   facet_grid(condition ~ ., labeller = labeller(condition = labf)) +
   scale_fill_manual(values = c(`-1` = COL_BBQ, `1` = COL_WILD),
@@ -2906,7 +2907,8 @@ ds[, signed := fifelse(direction < 0, 100 * frac, -100 * frac)]
 slo <- min(ds$signed) * 1.04; shi <- max(ds$signed) * 1.04
 pE <- ggplot(ds, aes(gmid, signed)) +
   chrom_bands(slo, shi) +
-  geom_area(aes(fill = factor(direction, c(-1, 1))), position = "identity") +
+  geom_area(aes(fill = factor(direction, c(-1, 1)), group = interaction(direction, chrom)),
+            position = "identity") +   # one area per chromosome: never bridge the gap
   geom_hline(yintercept = 0, colour = COL_INK2, linewidth = 0.3) +
   facet_grid(condition ~ ., labeller = labeller(condition = labs)) +
   scale_fill_manual(values = c(`-1` = COL_BBQ, `1` = COL_WILD),
@@ -3049,9 +3051,12 @@ make_surface <- function(p, title, sub, fade_below = 4, which_cond = NULL) {
   ridge_layers <- unlist(lapply(rev(seq_len(NR)), function(i) {
     s <- dd[row == i][order(gmid)]
     a <- if (s$n_pool[1] < fade_below) 0.45 else 1
-    sil <- rbind(s[, .(gmid, y = row + tot*AMP)],
-                 data.table(gmid = c(0, GENOME_END), y = i))[order(gmid)]
-    list(geom_line(data = sil, aes(gmid, y), inherit.aes = FALSE,
+    ## one silhouette per chromosome, pinned to the baseline at each end, so
+    ## no line is drawn across the gap between chromosomes
+    sil <- rbind(s[, .(chrom, gmid, y = row + tot*AMP)],
+                 data.table(chrom = CHROMS, gmid = OFFSET, y = i),
+                 data.table(chrom = CHROMS, gmid = OFFSET + CHRLEN, y = i))[order(chrom, gmid)]
+    list(geom_line(data = sil, aes(gmid, y, group = chrom), inherit.aes = FALSE,
                    colour = "white", linewidth = 0.4, lineend = "round"),
          geom_rect(data = s[tot > 0], aes(xmin = gmid - BIN/2, xmax = gmid + BIN/2,
                                           ymin = row, ymax = row + tot*AMP, fill = net),

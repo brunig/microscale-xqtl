@@ -250,6 +250,7 @@ const FLAG_TEXT = {
 };
 const HEAT_BW = 50000;
 
+const CHGAP = 120000;   // bp of empty space between chromosomes, as in the pipeline figures
 let D, CH, CHL, CHSTART = {}, GLEN = 0, BW, POOLS, BYID = {}, PEAKS = { fit: [], stress: [] }, PK_BY = { fit: {}, stress: {} };
 const S = { curve: false, peak: null, pview: "variants", tiers: new Set([1, 2, 3, 4, 5]), sortKey: null, sortDir: 1, showAll: false, mode: "af", conds: new Set(CONDS), flagged: false, cross: null, view: "genome", pool: null, sel: null, chrom: "chrIV", start: 400000, end: 620000, gene: null };
 const decoded = {};
@@ -465,7 +466,7 @@ document.getElementById("plates").addEventListener("click", e => {
 const gcan = document.getElementById("gcan"), gtip = document.getElementById("gtip");
 function gPos(ev) { const r = gcan.getBoundingClientRect(); const x = ev.clientX - r.left, y = ev.clientY - r.top;
   const g = (x - G.L) / (G.w - G.L - G.R) * GLEN; if (g < 0 || g >= GLEN) return null;
-  let ch = CH[0]; for (const c of CH) if (CHSTART[c] <= g) ch = c; return { x, y, ch, pos: Math.round(g - CHSTART[ch]) }; }
+  let ch = CH[0]; for (const c of CH) if (CHSTART[c] <= g) ch = c; if (g - CHSTART[ch] > CHL[ch]) return null; return { x, y, ch, pos: Math.round(g - CHSTART[ch]) }; }
 gcan.addEventListener("mousemove", ev => {
   const q = gPos(ev); if (!q) { gtip.hidden = true; return; }
   const H = heat(), b = Math.floor(q.pos / HEAT_BW); let lines = ['<span class="mono">' + q.ch + ":" + fmt(q.pos) + "</span>"];
@@ -902,7 +903,7 @@ new MutationObserver(() => go()).observe(document.documentElement, { attributes:
 
 fetch("data.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
   D = d; BW = d.bw; CH = Object.keys(d.chroms); CHL = d.chroms;
-  for (const ch of CH) { CHSTART[ch] = GLEN; GLEN += CHL[ch]; }
+  for (const ch of CH) { CHSTART[ch] = GLEN; GLEN += CHL[ch] + CHGAP; }  GLEN -= CHGAP;  // a visible gap between chromosomes
   POOLS = d.pools; POOLS.forEach(p => BYID[p.id] = p);
   for (const [set, src] of [["fit", d.fitpeaks], ["stress", d.stresspeaks]]) {
     for (let i = 0; i < src.s.length; i++) { const k = { s: src.s[i], c: src.c[i], a: src.a[i], e: src.e[i], p: src.p[i], b: src.b[i], m: src.m[i] }; PEAKS[set].push(k); (PK_BY[set][k.s] = PK_BY[set][k.s] || []).push(k); } }
