@@ -11,7 +11,7 @@
 ##   - ACL's 1011 allele -> our stock does carry it and the pools lost it;
 ##                      the flag is mislabelled and something biological is going on.
 ## Reads only. Nothing is combined or patched.
-suppressMessages(library(data.table))
+suppressMessages({library(data.table); library(Matrix)})   # Z is a sparse Matrix
 P  <- "/u/project/kruglyak/bruni/projects/xQTLpaper"
 A1 <- "/u/project/kruglyak/bruni/projects/A1ref"
 sites <- fread("acl_chrVIII_dead_sites.tsv")
