@@ -3,6 +3,7 @@ args <- commandArgs(trailingOnly = TRUE)
 RUN  <- if (length(args) >= 1) args[1] else "hoffmanDrop/notAF/v7"   # a run umbrella, e.g. runs/v7
 SITE <- normalizePath(if (length(args) >= 2) args[2] else "browser/docs", mustWork = FALSE)
 GFF  <- if (length(args) >= 3) args[3] else Sys.getenv("XQTL_GFF", "")
+TAG  <- if (length(args) >= 4) args[4] else "v7"   # run tag: cache file prefix and the build label
 setwd(RUN)
 OUT <- file.path(SITE, "data.json")
 BW <- 2000
@@ -17,7 +18,7 @@ binmean <- function(idx, v) { s <- rep(NA_real_, NB); ok <- !is.na(v); a <- tapp
 binsum <- function(idx, v) { s <- numeric(NB); a <- tapply(v, idx, sum); s[as.integer(names(a))] <- a; s }
 
 k <- read.csv("qc/results_key.csv", stringsAsFactors=FALSE)
-fit <- qs2::qs_read("cache/v7_fit_results.qs"); drg <- qs2::qs_read("cache/v7_drug_results.qs")
+fit <- qs2::qs_read(paste0("cache/", TAG, "_fit_results.qs")); drg <- qs2::qs_read(paste0("cache/", TAG, "_drug_results.qs"))
 pools <- list(); tr <- list(); raw <- list()
 for (s in names(fit)) { d <- fit[[s]]; idx <- binidx(d$chrom, d$physical.position)
   af <- d[[paste0("afd_",s)]]; p1 <- d[[paste0("p1_",s)]]; p2 <- d[[paste0("p2_",s)]]
@@ -51,7 +52,7 @@ gid <- att(g$V9,"ID"); gnm <- att(g$V9,"gene"); cls <- att(g$V9,"orf_classificat
 cls <- vapply(cls, utils::URLdecode, "")
 genes <- data.frame(c=g$V1, a=g$V4, e=g$V5, s=g$V7, id=gid, n=gnm, k=substr(cls,1,1))
 cat("genes:", nrow(genes), table(genes$k), "\n")
-out <- list(build="v7", bw=BW, chroms=as.list(CHRLEN), off=as.list(off), nbins=NB,
+out <- list(build=TAG, bw=BW, chroms=as.list(CHRLEN), off=as.list(off), nbins=NB,
   masks=read.csv("landscape/masked_regions.csv"), pools=meta, fitpeaks=fpo, stresspeaks=spo, published=pubo, genes=genes)
 writeLines(toJSON(out, auto_unbox=TRUE, dataframe="columns", digits=NA, null="null", na="null"), OUT)
 cat("bytes:", file.size(OUT), "\n")
