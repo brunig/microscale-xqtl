@@ -62,7 +62,12 @@ Done when `ls $P/v8/count_files/*.txt | wc -l` is 384 and qstat is empty.
 ## 4. QC   (submitted 2026-10-06 as job v8_qc)
 
     qsub -V -cwd -o v8_qc.log -j y -l h_rt=4:00:00,h_data=4G -pe shared 8 -N v8_qc -b y \
-      "bash $P/files_v8/qc_bam_generate.sh $P/v8/bam_files $P/v8/qc/bam_stats 8 && XQTL_PROJ=$P/v8 Rscript $P/files_v8/qc_pipeline.R"
+      "bash $P/files_v8/qc_bam_generate.sh $P/v8/bam_files $P/v8/qc/bam_stats 8 && env XQTL_PROJ=$P/v8 Rscript $P/files_v8/qc_pipeline.R"
+
+`qsub -b y` runs the command under tcsh, where `VAR=x cmd` is not valid
+("XQTL_PROJ=...: Command not found"); use `env VAR=x cmd`. The first v8
+attempt failed this way: the stats were made but qc_pipeline.R never ran, so
+no allowlist was written and the driver ran with pre-flight QC NOT applied.
 
 Progress: `ls $P/v8/qc/bam_stats/*.stats.txt | wc -l` (to 384), then `tail v8_qc.log`.
 Done when `$P/v8/qc/sample_allowlist.csv` exists and is recent:
@@ -73,7 +78,10 @@ Done when `$P/v8/qc/sample_allowlist.csv` exists and is recent:
 ## 5. The analysis driver   (queued behind v8_qc with -hold_jid)
 
     qsub -V -cwd -o v8_driver.log -j y -l h_rt=48:00:00,h_data=8G,highp -pe shared 8 \
-         -N v8_driver -hold_jid v8_qc -b y "Rscript $P/files_v8/xQTL_analysis8.R"
+         -N v8_driver -hold_jid v8_qc -b y \
+         "test -s $P/v8/qc/sample_allowlist.csv && Rscript $P/files_v8/xQTL_analysis8.R"
+
+The `test -s` guard stops the driver if QC did not write its allowlist.
 
 It waits in state `hqw` until v8_qc ends, then starts by itself. Cold start,
 no cache copied. Writes `$P/v8/runs/v8/`. Hours; the GO permutations are the
