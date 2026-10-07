@@ -39,3 +39,4 @@ tools/sra_inventory.sh	local-only (written 2026-10-06)	new
 tools/make_sra_sheets.py	local-only (written 2026-10-06)	new	
 parents/refA1key.csv	local copy of hoffman A1ref/20251119_refA1key.csv	hoffmanDrop/A1ref/20251119_refA1key.csv	640c43a4dfc655d78a92792a756e98af
 tools/sra_upload.sh	local-only (written 2026-10-06)	new	
+tools/parent_genotype_check.R	local-only (written 2026-10-07)	new	
