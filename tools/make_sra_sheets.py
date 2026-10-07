@@ -38,7 +38,8 @@ REGIME = {'Glu': 'two 48-h passages in HCD medium',
           'Ace': 'one 48-h passage in HCD medium'}
 PARENT_PREFIX = 'A1ref_'                # parent FASTQs renamed on upload
 NA_LAB = 'missing: lab stock'          # INSDC null term for laboratory material
-INSTRUMENT = 'Illumina NovaSeq X'
+INSTRUMENT = 'Illumina NovaSeq X'      # pools: read names @LH00168 (NovaSeq X)
+INSTRUMENT_PARENTS = 'NextSeq 2000'    # parent panel: read names @VH00910 (NextSeq 2000)
 DESIGN = ('Genomic DNA from a pool of haploid segregants (or a haploid parent '
           'culture), Tn5 tagmentation (homebrew, after Picelli et al. 2014), '
           'dual-indexed PCR with IDT for Illumina Nextera DNA UD indexes, '
@@ -225,7 +226,7 @@ def main():
             'title': f'WGS of S. cerevisiae haploid strain {strain} (plate A1ref well {r["Wells"]})',
             'library_strategy': 'WGS', 'library_source': 'GENOMIC',
             'library_selection': 'RANDOM', 'library_layout': 'paired',
-            'platform': 'ILLUMINA', 'instrument_model': INSTRUMENT,
+            'platform': 'ILLUMINA', 'instrument_model': INSTRUMENT_PARENTS,
             'design_description': DESIGN, 'filetype': 'fastq',
             **{c: (files[k] if k < len(files) else '')
                for k, c in enumerate(['filename', 'filename2', 'filename3', 'filename4'])},
