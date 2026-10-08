@@ -137,3 +137,33 @@ stress ~430 main before masking. Different numbers mean something else changed.
 Do NOT `cp -al` the whole v8b cache: v8b_afds/fit_results/drug_results/peaks
 carry the uncapped n and would be silently reused. Bring down as in §6 with
 `v8c` in place of `v8`, plus `--include` of `contrasts_ruled/`.
+
+## 8. v8d: depth guard rail, original settings   (2026-10-08; supersedes v8c)
+
+v8c's fixed n cap of 600 was dropped: the problem is not depth as such but
+comparing pools of very different depth. `pipeline/xQTL_analysis8d.R` is 8b plus:
+
+1. **Depth guard rail** (`depth_guard = TRUE`, §0). A condition pool whose
+   glucose control is shallower gets its AFD standard error recomputed at the
+   control's n, in BOTH its fitness and its stress contrast. Glucose pools and
+   shallow-pool/deep-control pairs are untouched; `afd_sample_size` stays 1e4.
+   Lowers n for 65 of 222 condition pools (Ace 41, NaCl 15, Caf 9). Log:
+   `qc/depth_guard.csv`.
+2. §19 peak rules run before §16-18, which read `contrasts_ruled/`
+   (split summits merged; pools off their well-mates moved to flagged).
+
+Checked locally against an independent re-call from the v8b caches (identical
+LODs for guarded and unguarded pools): expect main fitness 1,880 retained peaks
+in 215 pools, median 7, max 39 (Sample216); stress 649 retained in 117 pools.
+
+    # Mac
+    scp ~/Desktop/AFxQTL/xqtl-v7/pipeline/xQTL_analysis8d.R \
+        bruni@hoffman2.idre.ucla.edu:/u/project/kruglyak/bruni/projects/xQTLpaper/files_v8/
+    # Hoffman
+    P=/u/project/kruglyak/bruni/projects/xQTLpaper; E=/u/home/b/bruni/.conda/envs/genomicsV2/bin
+    mkdir -p $P/v8/runs/v8d/cache
+    ln -f $P/v8/runs/v8b/cache/v8b_countdfs.qs $P/v8/runs/v8d/cache/v8d_countdfs.qs
+    ln -f $P/v8/runs/v8b/cache/v8b_afds.qs     $P/v8/runs/v8d/cache/v8d_afds.qs      # AFDs do not depend on the guard
+    cd $P/files_v8
+    qsub -cwd -o v8d_driver.log -j y -l h_rt=48:00:00,h_data=8G,highp -pe shared 8 -N v8d_driver -b y \
+      "test -s $P/v8/runs/v8d/cache/v8d_afds.qs && env PATH=$E:/usr/bin:/bin $E/Rscript $P/files_v8/xQTL_analysis8d.R"
