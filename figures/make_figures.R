@@ -627,19 +627,19 @@ pool_over <- function(cond, chrom, pos) {
   list(sample = cand$sample[1], pair = cand$key[1], dep = cand$dep[1])
 }
 pool_over_dir <- function(cond, chrom, pos, want) {
-  cand <- fit_keep |>
+  ## 2026-10-08: candidates are pools whose OWN condition-specific contrast
+  ## detects the locus -- the unit the text counts ("ENA in 5 of 17 crosses")
+  ## and the trace each panel draws. Selecting on fitness peaks put AAV in 4B,
+  ## whose contrast peak stops 13 kb short of ENA, and skipped ABB's 44x pool,
+  ## which detects ENA in the contrast but has no fitness peak there.
+  cand <- str_keep |>
     filter(condition == cond, seqnames == chrom, start <= pos, end >= pos,
            if (want == "BBQ") peak.beta < 0 else peak.beta > 0) |>
-    group_by(sample) |> slice_max(abs(peak.beta), n = 1, with_ties = FALSE) |> ungroup() |>
-    ## keep only what is needed before the join: PAIR_INDEX carries its own
-    ## `cross` and `condition`, which would otherwise be suffixed away
-    select(sample, peak.beta, our_cross = cross) |>
+    group_by(L) |> slice_max(abs(peak.beta), n = 1, with_ties = FALSE) |> ungroup() |>
+    select(sample = L, peak.beta, our_cross = cross) |>
     inner_join(PAIR_INDEX |> filter(condition == cond), by = c("sample" = "L")) |>
     mutate(dep = unname(depth_of[sample])) |>
-    ## DEEPEST, not most extreme. Shallow pools inflate |beta|, so ranking on
-    ## effect size systematically draws the worst-supported pool -- the first
-    ## pass here picked a 5x pool over a 26x one. Require the locus to be
-    ## visible at all, then take the best-sequenced pool that shows it.
+    ## DEEPEST, not most extreme: shallow pools inflate |beta|.
     filter(!is.na(dep), abs(peak.beta) >= 0.10) |> arrange(desc(dep))
   if (!nrow(cand)) return(NULL)
   list(sample = cand$sample[1], pair = cand$key[1], dep = cand$dep[1],
