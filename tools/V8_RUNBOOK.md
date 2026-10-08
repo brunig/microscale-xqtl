@@ -102,3 +102,38 @@ early, `tail -60 v8_driver.log` says where; do not delete anything.
 Then, locally: compare v7 and v8 (pools passing, peaks, the spine results),
 check the parent calls at v8 depth, repoint NUMBERS, tables, figures and the
 browser to v8, and run the min_med_depth = 5 sensitivity run (`v8_mmd5`).
+
+## 7. v8c: n cap 600, §16-18 on the ruled peaks   (staged 2026-10-08)
+
+`pipeline/xQTL_analysis8c.R` is 8b plus three changes, nothing else:
+
+1. `afd_sample_size = 600 / afd_sel_strength`, so the n in the AFD standard
+   error is min(600, reads / 600). With 9,000 the cap never bound and peak
+   counts rose with depth inside every condition; at 600 they do not.
+   Pools below ~15x already have n < 600 and are untouched.
+2. §19 (peak rules) now runs BEFORE §16-18.
+3. §16-18 read `runs/v8c/contrasts_ruled/`: split summits merged away, and
+   every peak of a pool off its well-mates moved from `main` to `flagged`.
+   Genotype-dead areas stay in, flagged. The raw tables stay in `contrasts/`.
+
+Checked locally (re-call from the v8b caches with the driver's own
+findQTLPeaks; uncapped re-call matches v8b's tables exactly): expect main
+fitness 1,310 retained peaks in 215 pools, median 5, max 24 (Sample092);
+stress ~430 main before masking. Different numbers mean something else changed.
+
+    # Mac
+    scp ~/Desktop/AFxQTL/xqtl-v7/pipeline/xQTL_analysis8c.R \
+        bruni@hoffman2.idre.ucla.edu:/u/project/kruglyak/bruni/projects/xQTLpaper/files_v8/
+
+    # Hoffman (genomicsV2 active)
+    P=/u/project/kruglyak/bruni/projects/xQTLpaper
+    mkdir -p $P/v8/runs/v8c/cache
+    ln $P/v8/runs/v8b/cache/v8b_countdfs.qs $P/v8/runs/v8c/cache/v8c_countdfs.qs   # counts only; AFDs onward MUST recompute
+    cd $P/files_v8
+    qsub -V -cwd -o v8c_driver.log -j y -l h_rt=48:00:00,h_data=8G,highp -pe shared 8 \
+         -N v8c_driver -b y \
+         "test -s $P/v8/runs/v8c/cache/v8c_countdfs.qs && Rscript $P/files_v8/xQTL_analysis8c.R"
+
+Do NOT `cp -al` the whole v8b cache: v8b_afds/fit_results/drug_results/peaks
+carry the uncapped n and would be silently reused. Bring down as in §6 with
+`v8c` in place of `v8`, plus `--include` of `contrasts_ruled/`.
