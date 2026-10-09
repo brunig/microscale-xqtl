@@ -9,7 +9,7 @@ This repository holds the code for **run v7**, the run every number, table and
 figure in the paper comes from. It also holds the **Microscale X-QTL Browser**,
 the paper's interactive companion site, and the code that builds it.
 
-**Browser:** <!-- GitHub Pages URL, once enabled -->
+**Browser:** https://brunig.github.io/microscale-xqtl/
 **Data:** reads at SRA <!-- BioProject PRJNA… -->; processed data at Zenodo <!-- DOI -->
 **Code DOI:** <!-- Zenodo DOI minted from the GitHub release -->
 

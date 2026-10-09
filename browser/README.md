@@ -5,7 +5,7 @@ An interactive companion to *Microscale bulk segregant analysis and genetic mapp
 isolates crossed to the common parent BBQ, selected in glucose, acetate, caffeine
 and sodium chloride, 384 wells in all.
 
-**Open it:** <!-- GitHub Pages URL goes here once Pages is enabled -->
+**Open it:** https://brunig.github.io/microscale-xqtl/
 
 ## What it shows
 
