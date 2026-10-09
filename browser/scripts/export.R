@@ -41,7 +41,8 @@ maskit <- function(ch, st, en, pos) { m <- rep(FALSE, length(ch)); for (j in seq
   ov <- pmax(0, pmin(en,hi) - pmax(st,lo)); m <- m | (ch==MR$chrom[j] & ((pos>=lo & pos<=hi) | ov > 0.5*(hi-lo))) }; m }
 fp <- read.csv("contrasts/fit_peaks.csv"); sp <- read.csv("contrasts/stress_peaks.csv")
 fpo <- data.frame(s=fp$sample, c=fp$seqnames, a=fp$start, e=fp$end, p=fp$peak.pos, b=round(fp$peak.beta,4), m=as.integer(maskit(fp$seqnames,fp$start,fp$end,fp$peak.pos)))
-spo <- data.frame(s=sp$L, c=sp$seqnames, a=sp$start, e=sp$end, p=sp$peak.pos, b=round(sp$peak.beta,4), m=as.integer(maskit(sp$seqnames,sp$start,sp$end,sp$peak.pos)))
+spo <- data.frame(s=sp$L, c=sp$seqnames, a=sp$start, e=sp$end, p=sp$peak.pos, b=round(sp$peak.beta,4), m=as.integer(maskit(sp$seqnames,sp$start,sp$end,sp$peak.pos)),
+                  f=as.integer(sp$databin != "main"))   # 1 = the contrast is flagged (pool or its glucose control)
 cat("fit main peaks after mask:", sum(fp$databin=="main" & fpo$m==0), "\n")
 pub <- read.csv("landscape/published_loci_used.csv")
 pubo <- data.frame(q=pub$qtl, cond=pub$cond, c=pub$chrom, a=pub$lo, e=pub$hi, p=pub$maxpos, n=pub$ncross, lod=pub$lod, st=pub$study)

@@ -279,7 +279,9 @@ function visible(p) {
   if (S.cross && p.cross !== S.cross) return false;
   return true;
 }
-function peaksOf(p) { return PK_BY[S.mode === "af" ? "fit" : "stress"][p.id] || []; }
+// a stress peak whose contrast is flagged (its glucose control is flagged) counts as flagged, as in the pipeline
+function pk(set, id) { return (PK_BY[set][id] || []).filter(k => !k.f || S.flagged); }
+function peaksOf(p) { return pk(S.mode === "af" ? "fit" : "stress", p.id); }
 
 /* ---------- heatmap: distinct crosses per 50 kb bin ---------- */
 const heatCache = {};
@@ -492,7 +494,7 @@ function packLanes(items, gap) { const lanes = []; for (const it of items) { let
 function poolsInView() {
   const res = []; const set = S.mode === "af" ? "fit" : "stress";
   for (const p of POOLS) { if (!visible(p)) continue;
-    const ks = (PK_BY[set][p.id] || []).filter(k => k.c === S.chrom && k.e >= S.start && k.a <= S.end);
+    const ks = pk(set, p.id).filter(k => k.c === S.chrom && k.e >= S.start && k.a <= S.end);
     if (ks.length) res.push({ p, ks }); }
   res.sort((A, B) => CONDS.indexOf(A.p.cond) - CONDS.indexOf(B.p.cond) || A.p.cross.localeCompare(B.p.cross) || A.p.id.localeCompare(B.p.id));
   return res;
@@ -601,7 +603,7 @@ function renderTables() {
   let h = '<thead><tr><th>Pool</th><th>Cross</th><th>Condition</th><th>Well</th><th class="num">Depth</th><th class="num">β at summit</th><th>Favours</th><th class="num">Summit</th><th class="num">Interval</th><th>Status</th></tr></thead><tbody>';
   TROWS = rows;
   rows.forEach(({ p, k }, ri) => {
-    h += '<tr class="row' + (S.peak && S.peak.s === p.id && S.peak.a === k.a ? " sel" : "") + '" data-id="' + p.id + '" data-r="' + ri + '" title="Show genes and variants under this peak"><td class="mono">' + p.id + '</td><td>' + esc(crossLabel(p.cross)) + '</td><td><span class="dot" style="--c:' + ccol(p.cond) + '"></span>' + CLONG[p.cond] + '</td><td class="mono">' + p.well + '</td><td class="num">' + (p.mean != null ? p.mean + "×" : "") + '</td><td class="num">' + (k.b > 0 ? "+" : "") + k.b.toFixed(3) + '</td><td>' + (k.b < 0 ? "BBQ" : esc(p.alt)) + '</td><td class="num">' + fmt(k.p) + '</td><td class="num">' + fmtkb(k.e - k.a) + '</td><td>' + (k.m ? '<span class="pill nodata">masked</span> ' : "") + '<span class="pill ' + p.bin + '">' + p.bin + '</span>' + (p.bin === "flagged" ? ' <span style="color:var(--muted)">' + p.flags.split(";").map(f => FLAG_TEXT[f] || f).join(", ") + '</span>' : "") + '</td></tr>';
+    h += '<tr class="row' + (S.peak && S.peak.s === p.id && S.peak.a === k.a ? " sel" : "") + '" data-id="' + p.id + '" data-r="' + ri + '" title="Show genes and variants under this peak"><td class="mono">' + p.id + '</td><td>' + esc(crossLabel(p.cross)) + '</td><td><span class="dot" style="--c:' + ccol(p.cond) + '"></span>' + CLONG[p.cond] + '</td><td class="mono">' + p.well + '</td><td class="num">' + (p.mean != null ? p.mean + "×" : "") + '</td><td class="num">' + (k.b > 0 ? "+" : "") + k.b.toFixed(3) + '</td><td>' + (k.b < 0 ? "BBQ" : esc(p.alt)) + '</td><td class="num">' + fmt(k.p) + '</td><td class="num">' + fmtkb(k.e - k.a) + '</td><td>' + (k.m ? '<span class="pill nodata">masked</span> ' : "") + (k.f ? '<span class="pill flagged" title="This pool passes QC but its glucose control is flagged, so the pipeline holds this contrast out">control flagged</span> ' : "") + '<span class="pill ' + p.bin + '">' + p.bin + '</span>' + (p.bin === "flagged" ? ' <span style="color:var(--muted)">' + p.flags.split(";").map(f => FLAG_TEXT[f] || f).join(", ") + '</span>' : "") + '</td></tr>';
   });
   if (!rows.length) h += '<tr><td colspan="10" style="color:var(--muted)">No peak from a shown pool overlaps this region. Widen the view or include flagged pools.</td></tr>';
   t.innerHTML = h + "</tbody>";
@@ -617,7 +619,7 @@ function renderGeneCard() {
   if (i == null) { el.innerHTML = ""; return; }
   const nm = D.genes.n[i] || D.genes.id[i], cls = { V: "verified ORF", U: "uncharacterized ORF", D: "dubious ORF" }[D.genes.k[i]] || "gene";
   const ks = []; const set = S.mode === "af" ? "fit" : "stress";
-  for (const p of POOLS) { if (!visible(p)) continue; for (const k of PK_BY[set][p.id] || []) if (k.c === D.genes.c[i] && k.a <= D.genes.e[i] && k.e >= D.genes.a[i]) { ks.push(p); break; } }
+  for (const p of POOLS) { if (!visible(p)) continue; for (const k of pk(set, p.id)) if (k.c === D.genes.c[i] && k.a <= D.genes.e[i] && k.e >= D.genes.a[i]) { ks.push(p); break; } }
   const crosses = new Set(ks.map(p => p.cross));
   el.innerHTML = '<div class="genecard"><b>' + esc(nm) + '</b> <span class="mono" style="color:var(--muted)">' + esc(D.genes.id[i]) + '</span><br>' + cls + ' · ' + D.genes.c[i] + ':' + fmt(D.genes.a[i]) + '–' + fmt(D.genes.e[i]) + ' (' + D.genes.s[i] + ')<br>' +
     'Covered by a ' + (S.mode === "af" ? "fitness" : "stress-contrast") + ' peak in <b>' + ks.length + '</b> shown pool' + (ks.length === 1 ? "" : "s") + ' from <b>' + crosses.size + '</b> cross' + (crosses.size === 1 ? "" : "es") + '.<br><a href="https://www.yeastgenome.org/locus/' + encodeURIComponent(D.genes.id[i]) + '" target="_blank" rel="noopener">Open in SGD ↗</a></div>';
@@ -711,7 +713,7 @@ function selectPeak(id, k, scroll) {
 function detecting(pk, p) {
   // crosses with a peak from a main pool of the same condition overlapping this interval
   const out = new Map();
-  for (const k of PEAKS[pk.set]) { if (k.m || k.c !== pk.c || k.e < pk.a || k.a > pk.e) continue; const q = BYID[k.s]; if (!q || q.bin !== "main" || q.cond !== p.cond) continue;
+  for (const k of PEAKS[pk.set]) { if (k.m || k.f || k.c !== pk.c || k.e < pk.a || k.a > pk.e) continue; const q = BYID[k.s]; if (!q || q.bin !== "main" || q.cond !== p.cond) continue;
     if (!out.has(q.cross)) out.set(q.cross, new Set()); out.get(q.cross).add(k.c + ":" + k.a + "-" + k.e); }
   if (!out.has(p.cross)) out.set(p.cross, new Set([pk.c + ":" + pk.a + "-" + pk.e]));
   return out;
@@ -906,7 +908,7 @@ fetch("data.json").then(r => { if (!r.ok) throw new Error(r.status); return r.js
   for (const ch of CH) { CHSTART[ch] = GLEN; GLEN += CHL[ch] + CHGAP; }  GLEN -= CHGAP;  // a visible gap between chromosomes
   POOLS = d.pools; POOLS.forEach(p => BYID[p.id] = p);
   for (const [set, src] of [["fit", d.fitpeaks], ["stress", d.stresspeaks]]) {
-    for (let i = 0; i < src.s.length; i++) { const k = { s: src.s[i], c: src.c[i], a: src.a[i], e: src.e[i], p: src.p[i], b: src.b[i], m: src.m[i] }; PEAKS[set].push(k); (PK_BY[set][k.s] = PK_BY[set][k.s] || []).push(k); } }
+    for (let i = 0; i < src.s.length; i++) { const k = { s: src.s[i], c: src.c[i], a: src.a[i], e: src.e[i], p: src.p[i], b: src.b[i], m: src.m[i], f: src.f ? src.f[i] : 0 }; PEAKS[set].push(k); (PK_BY[set][k.s] = PK_BY[set][k.s] || []).push(k); } }
   buildIndex(); readHash();
   document.getElementById("loading").hidden = true; go();
 }).catch(err => { document.getElementById("loading").textContent = "The data file did not load (" + err.message + "). Reload the page to try again."; });
