@@ -28,8 +28,8 @@ on a workstation from a copy of the run directory.
                               parents, used as the reference panel for step 3
     2  qc/
          qc_bam_generate.sh   samtools stats for every BAM
-         qc_pipeline.R        pre-flight QC; writes sample_allowlist.csv and
-                              unresolved_wells_A1.txt, which step 4 reads
+         qc_pipeline.R        pre-flight QC; writes sample_allowlist.csv,
+                              which step 4 reads
     3  parents/             which wild parent is in each well (216 of 384
                             reassigned from the nominal plate map)
          hamming_export.py, hamming_integrate.R
@@ -38,8 +38,20 @@ on a workstation from a copy of the run directory.
          scan_parent_identity.R   per-well likelihood over all strains
          reassign_parents.R       applies the calls; holds back the ambiguous
          recheck_held_wells.R     resolves the held wells
-         round3_apply.R           builds the final key from one rule
-         verify_parents.R         independent check of the final key
+         round3_apply.R           round 3: one rule on overdispersion and fit
+         build_parent_Z_maj.R     genotypes of the sequenced A1 haploids
+         test_parents_A1_maj.R    tests disputed wells' reads against the A1
+                                  haploids; rejects candidates, never confirms
+         build_final_key.R        applies that test over round 3; writes
+                                  flatkey_A1.csv and unresolved_wells_A1.txt,
+                                  which step 4 reads
+         scan_all_candidates.R, scan_919.R, reconstruct_parents.R,
+         reconstruct_cv.R         evidence behind the 15 wells called by hand
+         test_row_source.R        per strain, 1011-panel or A1 genotype row
+         Z_final_provenance.csv   its choices; Z_final.qs was assembled from
+                                  them by hand, no script writes it
+         verify_parents.R, verify_final_key.R
+                                  independent checks of the final key
          flatkey_A1.csv           THE KEY: sample -> cross, well, condition
     4  pipeline/
          xQTL_analysis7.R     the analysis driver. Allele frequencies,
